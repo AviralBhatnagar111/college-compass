@@ -15,7 +15,34 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
 import { Route as AppSplatRouteImport } from './routes/_app/$'
+import { Route as AppPlacementOffersRouteImport } from './routes/_app/placement/offers'
+import { Route as AppPlacementJobProfilesRouteImport } from './routes/_app/placement/job-profiles'
+import { Route as AppPlacementDrivesRouteImport } from './routes/_app/placement/drives'
+import { Route as AppPlacementCompaniesRouteImport } from './routes/_app/placement/companies'
+import { Route as AppPlacementAiInterviewsRouteImport } from './routes/_app/placement/ai-interviews'
+import { Route as AppPlacementAiAssessmentsRouteImport } from './routes/_app/placement/ai-assessments'
+import { Route as AppFinanceScholarshipsRouteImport } from './routes/_app/finance/scholarships'
+import { Route as AppFinanceLedgerRouteImport } from './routes/_app/finance/ledger'
+import { Route as AppFinanceFeeStructuresRouteImport } from './routes/_app/finance/fee-structures'
+import { Route as AppFinanceDefaultersRouteImport } from './routes/_app/finance/defaulters'
+import { Route as AppComplianceNirfRouteImport } from './routes/_app/compliance/nirf'
+import { Route as AppComplianceNbaRouteImport } from './routes/_app/compliance/nba'
+import { Route as AppComplianceNaacRouteImport } from './routes/_app/compliance/naac'
+import { Route as AppComplianceAicteRouteImport } from './routes/_app/compliance/aicte'
+import { Route as AppCommunicationInboxRouteImport } from './routes/_app/communication/inbox'
+import { Route as AppCommunicationAnnouncementsRouteImport } from './routes/_app/communication/announcements'
+import { Route as AppAnalyticsReportsRouteImport } from './routes/_app/analytics/reports'
+import { Route as AppAcademicTimetableRouteImport } from './routes/_app/academic/timetable'
+import { Route as AppAcademicSubjectsRouteImport } from './routes/_app/academic/subjects'
+import { Route as AppAcademicStudyMaterialRouteImport } from './routes/_app/academic/study-material'
+import { Route as AppAcademicResultsRouteImport } from './routes/_app/academic/results'
+import { Route as AppAcademicProgramsRouteImport } from './routes/_app/academic/programs'
+import { Route as AppAcademicExaminationsRouteImport } from './routes/_app/academic/examinations'
+import { Route as AppAcademicClassesRouteImport } from './routes/_app/academic/classes'
+import { Route as AppAcademicAttendanceRouteImport } from './routes/_app/academic/attendance'
 import { Route as AppAdminAccessControlIndexRouteImport } from './routes/_app/admin/access-control/index'
+import { Route as AppPlacementDrivesIdRouteImport } from './routes/_app/placement/drives.$id'
+import { Route as AppPlacementAiAssessmentsTakeRouteImport } from './routes/_app/placement/ai-assessments.take'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -46,11 +73,151 @@ const AppSplatRoute = AppSplatRouteImport.update({
   path: '/$',
   getParentRoute: () => AppRoute,
 } as any)
+const AppPlacementOffersRoute = AppPlacementOffersRouteImport.update({
+  id: '/placement/offers',
+  path: '/placement/offers',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPlacementJobProfilesRoute = AppPlacementJobProfilesRouteImport.update({
+  id: '/placement/job-profiles',
+  path: '/placement/job-profiles',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPlacementDrivesRoute = AppPlacementDrivesRouteImport.update({
+  id: '/placement/drives',
+  path: '/placement/drives',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPlacementCompaniesRoute = AppPlacementCompaniesRouteImport.update({
+  id: '/placement/companies',
+  path: '/placement/companies',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPlacementAiInterviewsRoute =
+  AppPlacementAiInterviewsRouteImport.update({
+    id: '/placement/ai-interviews',
+    path: '/placement/ai-interviews',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppPlacementAiAssessmentsRoute =
+  AppPlacementAiAssessmentsRouteImport.update({
+    id: '/placement/ai-assessments',
+    path: '/placement/ai-assessments',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppFinanceScholarshipsRoute = AppFinanceScholarshipsRouteImport.update({
+  id: '/finance/scholarships',
+  path: '/finance/scholarships',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppFinanceLedgerRoute = AppFinanceLedgerRouteImport.update({
+  id: '/finance/ledger',
+  path: '/finance/ledger',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppFinanceFeeStructuresRoute = AppFinanceFeeStructuresRouteImport.update({
+  id: '/finance/fee-structures',
+  path: '/finance/fee-structures',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppFinanceDefaultersRoute = AppFinanceDefaultersRouteImport.update({
+  id: '/finance/defaulters',
+  path: '/finance/defaulters',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppComplianceNirfRoute = AppComplianceNirfRouteImport.update({
+  id: '/compliance/nirf',
+  path: '/compliance/nirf',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppComplianceNbaRoute = AppComplianceNbaRouteImport.update({
+  id: '/compliance/nba',
+  path: '/compliance/nba',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppComplianceNaacRoute = AppComplianceNaacRouteImport.update({
+  id: '/compliance/naac',
+  path: '/compliance/naac',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppComplianceAicteRoute = AppComplianceAicteRouteImport.update({
+  id: '/compliance/aicte',
+  path: '/compliance/aicte',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCommunicationInboxRoute = AppCommunicationInboxRouteImport.update({
+  id: '/communication/inbox',
+  path: '/communication/inbox',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCommunicationAnnouncementsRoute =
+  AppCommunicationAnnouncementsRouteImport.update({
+    id: '/communication/announcements',
+    path: '/communication/announcements',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppAnalyticsReportsRoute = AppAnalyticsReportsRouteImport.update({
+  id: '/analytics/reports',
+  path: '/analytics/reports',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAcademicTimetableRoute = AppAcademicTimetableRouteImport.update({
+  id: '/academic/timetable',
+  path: '/academic/timetable',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAcademicSubjectsRoute = AppAcademicSubjectsRouteImport.update({
+  id: '/academic/subjects',
+  path: '/academic/subjects',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAcademicStudyMaterialRoute =
+  AppAcademicStudyMaterialRouteImport.update({
+    id: '/academic/study-material',
+    path: '/academic/study-material',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppAcademicResultsRoute = AppAcademicResultsRouteImport.update({
+  id: '/academic/results',
+  path: '/academic/results',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAcademicProgramsRoute = AppAcademicProgramsRouteImport.update({
+  id: '/academic/programs',
+  path: '/academic/programs',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAcademicExaminationsRoute = AppAcademicExaminationsRouteImport.update({
+  id: '/academic/examinations',
+  path: '/academic/examinations',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAcademicClassesRoute = AppAcademicClassesRouteImport.update({
+  id: '/academic/classes',
+  path: '/academic/classes',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAcademicAttendanceRoute = AppAcademicAttendanceRouteImport.update({
+  id: '/academic/attendance',
+  path: '/academic/attendance',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAdminAccessControlIndexRoute =
   AppAdminAccessControlIndexRouteImport.update({
     id: '/admin/access-control/',
     path: '/admin/access-control/',
     getParentRoute: () => AppRoute,
+  } as any)
+const AppPlacementDrivesIdRoute = AppPlacementDrivesIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AppPlacementDrivesRoute,
+} as any)
+const AppPlacementAiAssessmentsTakeRoute =
+  AppPlacementAiAssessmentsTakeRouteImport.update({
+    id: '/take',
+    path: '/take',
+    getParentRoute: () => AppPlacementAiAssessmentsRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -59,6 +226,33 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/$': typeof AppSplatRoute
   '/dashboard': typeof AppDashboardRoute
+  '/academic/attendance': typeof AppAcademicAttendanceRoute
+  '/academic/classes': typeof AppAcademicClassesRoute
+  '/academic/examinations': typeof AppAcademicExaminationsRoute
+  '/academic/programs': typeof AppAcademicProgramsRoute
+  '/academic/results': typeof AppAcademicResultsRoute
+  '/academic/study-material': typeof AppAcademicStudyMaterialRoute
+  '/academic/subjects': typeof AppAcademicSubjectsRoute
+  '/academic/timetable': typeof AppAcademicTimetableRoute
+  '/analytics/reports': typeof AppAnalyticsReportsRoute
+  '/communication/announcements': typeof AppCommunicationAnnouncementsRoute
+  '/communication/inbox': typeof AppCommunicationInboxRoute
+  '/compliance/aicte': typeof AppComplianceAicteRoute
+  '/compliance/naac': typeof AppComplianceNaacRoute
+  '/compliance/nba': typeof AppComplianceNbaRoute
+  '/compliance/nirf': typeof AppComplianceNirfRoute
+  '/finance/defaulters': typeof AppFinanceDefaultersRoute
+  '/finance/fee-structures': typeof AppFinanceFeeStructuresRoute
+  '/finance/ledger': typeof AppFinanceLedgerRoute
+  '/finance/scholarships': typeof AppFinanceScholarshipsRoute
+  '/placement/ai-assessments': typeof AppPlacementAiAssessmentsRouteWithChildren
+  '/placement/ai-interviews': typeof AppPlacementAiInterviewsRoute
+  '/placement/companies': typeof AppPlacementCompaniesRoute
+  '/placement/drives': typeof AppPlacementDrivesRouteWithChildren
+  '/placement/job-profiles': typeof AppPlacementJobProfilesRoute
+  '/placement/offers': typeof AppPlacementOffersRoute
+  '/placement/ai-assessments/take': typeof AppPlacementAiAssessmentsTakeRoute
+  '/placement/drives/$id': typeof AppPlacementDrivesIdRoute
   '/admin/access-control/': typeof AppAdminAccessControlIndexRoute
 }
 export interface FileRoutesByTo {
@@ -67,6 +261,33 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/$': typeof AppSplatRoute
   '/dashboard': typeof AppDashboardRoute
+  '/academic/attendance': typeof AppAcademicAttendanceRoute
+  '/academic/classes': typeof AppAcademicClassesRoute
+  '/academic/examinations': typeof AppAcademicExaminationsRoute
+  '/academic/programs': typeof AppAcademicProgramsRoute
+  '/academic/results': typeof AppAcademicResultsRoute
+  '/academic/study-material': typeof AppAcademicStudyMaterialRoute
+  '/academic/subjects': typeof AppAcademicSubjectsRoute
+  '/academic/timetable': typeof AppAcademicTimetableRoute
+  '/analytics/reports': typeof AppAnalyticsReportsRoute
+  '/communication/announcements': typeof AppCommunicationAnnouncementsRoute
+  '/communication/inbox': typeof AppCommunicationInboxRoute
+  '/compliance/aicte': typeof AppComplianceAicteRoute
+  '/compliance/naac': typeof AppComplianceNaacRoute
+  '/compliance/nba': typeof AppComplianceNbaRoute
+  '/compliance/nirf': typeof AppComplianceNirfRoute
+  '/finance/defaulters': typeof AppFinanceDefaultersRoute
+  '/finance/fee-structures': typeof AppFinanceFeeStructuresRoute
+  '/finance/ledger': typeof AppFinanceLedgerRoute
+  '/finance/scholarships': typeof AppFinanceScholarshipsRoute
+  '/placement/ai-assessments': typeof AppPlacementAiAssessmentsRouteWithChildren
+  '/placement/ai-interviews': typeof AppPlacementAiInterviewsRoute
+  '/placement/companies': typeof AppPlacementCompaniesRoute
+  '/placement/drives': typeof AppPlacementDrivesRouteWithChildren
+  '/placement/job-profiles': typeof AppPlacementJobProfilesRoute
+  '/placement/offers': typeof AppPlacementOffersRoute
+  '/placement/ai-assessments/take': typeof AppPlacementAiAssessmentsTakeRoute
+  '/placement/drives/$id': typeof AppPlacementDrivesIdRoute
   '/admin/access-control': typeof AppAdminAccessControlIndexRoute
 }
 export interface FileRoutesById {
@@ -77,6 +298,33 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/_app/$': typeof AppSplatRoute
   '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/academic/attendance': typeof AppAcademicAttendanceRoute
+  '/_app/academic/classes': typeof AppAcademicClassesRoute
+  '/_app/academic/examinations': typeof AppAcademicExaminationsRoute
+  '/_app/academic/programs': typeof AppAcademicProgramsRoute
+  '/_app/academic/results': typeof AppAcademicResultsRoute
+  '/_app/academic/study-material': typeof AppAcademicStudyMaterialRoute
+  '/_app/academic/subjects': typeof AppAcademicSubjectsRoute
+  '/_app/academic/timetable': typeof AppAcademicTimetableRoute
+  '/_app/analytics/reports': typeof AppAnalyticsReportsRoute
+  '/_app/communication/announcements': typeof AppCommunicationAnnouncementsRoute
+  '/_app/communication/inbox': typeof AppCommunicationInboxRoute
+  '/_app/compliance/aicte': typeof AppComplianceAicteRoute
+  '/_app/compliance/naac': typeof AppComplianceNaacRoute
+  '/_app/compliance/nba': typeof AppComplianceNbaRoute
+  '/_app/compliance/nirf': typeof AppComplianceNirfRoute
+  '/_app/finance/defaulters': typeof AppFinanceDefaultersRoute
+  '/_app/finance/fee-structures': typeof AppFinanceFeeStructuresRoute
+  '/_app/finance/ledger': typeof AppFinanceLedgerRoute
+  '/_app/finance/scholarships': typeof AppFinanceScholarshipsRoute
+  '/_app/placement/ai-assessments': typeof AppPlacementAiAssessmentsRouteWithChildren
+  '/_app/placement/ai-interviews': typeof AppPlacementAiInterviewsRoute
+  '/_app/placement/companies': typeof AppPlacementCompaniesRoute
+  '/_app/placement/drives': typeof AppPlacementDrivesRouteWithChildren
+  '/_app/placement/job-profiles': typeof AppPlacementJobProfilesRoute
+  '/_app/placement/offers': typeof AppPlacementOffersRoute
+  '/_app/placement/ai-assessments/take': typeof AppPlacementAiAssessmentsTakeRoute
+  '/_app/placement/drives/$id': typeof AppPlacementDrivesIdRoute
   '/_app/admin/access-control/': typeof AppAdminAccessControlIndexRoute
 }
 export interface FileRouteTypes {
@@ -87,6 +335,33 @@ export interface FileRouteTypes {
     | '/login'
     | '/$'
     | '/dashboard'
+    | '/academic/attendance'
+    | '/academic/classes'
+    | '/academic/examinations'
+    | '/academic/programs'
+    | '/academic/results'
+    | '/academic/study-material'
+    | '/academic/subjects'
+    | '/academic/timetable'
+    | '/analytics/reports'
+    | '/communication/announcements'
+    | '/communication/inbox'
+    | '/compliance/aicte'
+    | '/compliance/naac'
+    | '/compliance/nba'
+    | '/compliance/nirf'
+    | '/finance/defaulters'
+    | '/finance/fee-structures'
+    | '/finance/ledger'
+    | '/finance/scholarships'
+    | '/placement/ai-assessments'
+    | '/placement/ai-interviews'
+    | '/placement/companies'
+    | '/placement/drives'
+    | '/placement/job-profiles'
+    | '/placement/offers'
+    | '/placement/ai-assessments/take'
+    | '/placement/drives/$id'
     | '/admin/access-control/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -95,6 +370,33 @@ export interface FileRouteTypes {
     | '/login'
     | '/$'
     | '/dashboard'
+    | '/academic/attendance'
+    | '/academic/classes'
+    | '/academic/examinations'
+    | '/academic/programs'
+    | '/academic/results'
+    | '/academic/study-material'
+    | '/academic/subjects'
+    | '/academic/timetable'
+    | '/analytics/reports'
+    | '/communication/announcements'
+    | '/communication/inbox'
+    | '/compliance/aicte'
+    | '/compliance/naac'
+    | '/compliance/nba'
+    | '/compliance/nirf'
+    | '/finance/defaulters'
+    | '/finance/fee-structures'
+    | '/finance/ledger'
+    | '/finance/scholarships'
+    | '/placement/ai-assessments'
+    | '/placement/ai-interviews'
+    | '/placement/companies'
+    | '/placement/drives'
+    | '/placement/job-profiles'
+    | '/placement/offers'
+    | '/placement/ai-assessments/take'
+    | '/placement/drives/$id'
     | '/admin/access-control'
   id:
     | '__root__'
@@ -104,6 +406,33 @@ export interface FileRouteTypes {
     | '/login'
     | '/_app/$'
     | '/_app/dashboard'
+    | '/_app/academic/attendance'
+    | '/_app/academic/classes'
+    | '/_app/academic/examinations'
+    | '/_app/academic/programs'
+    | '/_app/academic/results'
+    | '/_app/academic/study-material'
+    | '/_app/academic/subjects'
+    | '/_app/academic/timetable'
+    | '/_app/analytics/reports'
+    | '/_app/communication/announcements'
+    | '/_app/communication/inbox'
+    | '/_app/compliance/aicte'
+    | '/_app/compliance/naac'
+    | '/_app/compliance/nba'
+    | '/_app/compliance/nirf'
+    | '/_app/finance/defaulters'
+    | '/_app/finance/fee-structures'
+    | '/_app/finance/ledger'
+    | '/_app/finance/scholarships'
+    | '/_app/placement/ai-assessments'
+    | '/_app/placement/ai-interviews'
+    | '/_app/placement/companies'
+    | '/_app/placement/drives'
+    | '/_app/placement/job-profiles'
+    | '/_app/placement/offers'
+    | '/_app/placement/ai-assessments/take'
+    | '/_app/placement/drives/$id'
     | '/_app/admin/access-control/'
   fileRoutesById: FileRoutesById
 }
@@ -158,6 +487,181 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSplatRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/placement/offers': {
+      id: '/_app/placement/offers'
+      path: '/placement/offers'
+      fullPath: '/placement/offers'
+      preLoaderRoute: typeof AppPlacementOffersRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/placement/job-profiles': {
+      id: '/_app/placement/job-profiles'
+      path: '/placement/job-profiles'
+      fullPath: '/placement/job-profiles'
+      preLoaderRoute: typeof AppPlacementJobProfilesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/placement/drives': {
+      id: '/_app/placement/drives'
+      path: '/placement/drives'
+      fullPath: '/placement/drives'
+      preLoaderRoute: typeof AppPlacementDrivesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/placement/companies': {
+      id: '/_app/placement/companies'
+      path: '/placement/companies'
+      fullPath: '/placement/companies'
+      preLoaderRoute: typeof AppPlacementCompaniesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/placement/ai-interviews': {
+      id: '/_app/placement/ai-interviews'
+      path: '/placement/ai-interviews'
+      fullPath: '/placement/ai-interviews'
+      preLoaderRoute: typeof AppPlacementAiInterviewsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/placement/ai-assessments': {
+      id: '/_app/placement/ai-assessments'
+      path: '/placement/ai-assessments'
+      fullPath: '/placement/ai-assessments'
+      preLoaderRoute: typeof AppPlacementAiAssessmentsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/finance/scholarships': {
+      id: '/_app/finance/scholarships'
+      path: '/finance/scholarships'
+      fullPath: '/finance/scholarships'
+      preLoaderRoute: typeof AppFinanceScholarshipsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/finance/ledger': {
+      id: '/_app/finance/ledger'
+      path: '/finance/ledger'
+      fullPath: '/finance/ledger'
+      preLoaderRoute: typeof AppFinanceLedgerRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/finance/fee-structures': {
+      id: '/_app/finance/fee-structures'
+      path: '/finance/fee-structures'
+      fullPath: '/finance/fee-structures'
+      preLoaderRoute: typeof AppFinanceFeeStructuresRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/finance/defaulters': {
+      id: '/_app/finance/defaulters'
+      path: '/finance/defaulters'
+      fullPath: '/finance/defaulters'
+      preLoaderRoute: typeof AppFinanceDefaultersRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/compliance/nirf': {
+      id: '/_app/compliance/nirf'
+      path: '/compliance/nirf'
+      fullPath: '/compliance/nirf'
+      preLoaderRoute: typeof AppComplianceNirfRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/compliance/nba': {
+      id: '/_app/compliance/nba'
+      path: '/compliance/nba'
+      fullPath: '/compliance/nba'
+      preLoaderRoute: typeof AppComplianceNbaRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/compliance/naac': {
+      id: '/_app/compliance/naac'
+      path: '/compliance/naac'
+      fullPath: '/compliance/naac'
+      preLoaderRoute: typeof AppComplianceNaacRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/compliance/aicte': {
+      id: '/_app/compliance/aicte'
+      path: '/compliance/aicte'
+      fullPath: '/compliance/aicte'
+      preLoaderRoute: typeof AppComplianceAicteRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/communication/inbox': {
+      id: '/_app/communication/inbox'
+      path: '/communication/inbox'
+      fullPath: '/communication/inbox'
+      preLoaderRoute: typeof AppCommunicationInboxRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/communication/announcements': {
+      id: '/_app/communication/announcements'
+      path: '/communication/announcements'
+      fullPath: '/communication/announcements'
+      preLoaderRoute: typeof AppCommunicationAnnouncementsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/analytics/reports': {
+      id: '/_app/analytics/reports'
+      path: '/analytics/reports'
+      fullPath: '/analytics/reports'
+      preLoaderRoute: typeof AppAnalyticsReportsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/academic/timetable': {
+      id: '/_app/academic/timetable'
+      path: '/academic/timetable'
+      fullPath: '/academic/timetable'
+      preLoaderRoute: typeof AppAcademicTimetableRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/academic/subjects': {
+      id: '/_app/academic/subjects'
+      path: '/academic/subjects'
+      fullPath: '/academic/subjects'
+      preLoaderRoute: typeof AppAcademicSubjectsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/academic/study-material': {
+      id: '/_app/academic/study-material'
+      path: '/academic/study-material'
+      fullPath: '/academic/study-material'
+      preLoaderRoute: typeof AppAcademicStudyMaterialRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/academic/results': {
+      id: '/_app/academic/results'
+      path: '/academic/results'
+      fullPath: '/academic/results'
+      preLoaderRoute: typeof AppAcademicResultsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/academic/programs': {
+      id: '/_app/academic/programs'
+      path: '/academic/programs'
+      fullPath: '/academic/programs'
+      preLoaderRoute: typeof AppAcademicProgramsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/academic/examinations': {
+      id: '/_app/academic/examinations'
+      path: '/academic/examinations'
+      fullPath: '/academic/examinations'
+      preLoaderRoute: typeof AppAcademicExaminationsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/academic/classes': {
+      id: '/_app/academic/classes'
+      path: '/academic/classes'
+      fullPath: '/academic/classes'
+      preLoaderRoute: typeof AppAcademicClassesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/academic/attendance': {
+      id: '/_app/academic/attendance'
+      path: '/academic/attendance'
+      fullPath: '/academic/attendance'
+      preLoaderRoute: typeof AppAcademicAttendanceRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/admin/access-control/': {
       id: '/_app/admin/access-control/'
       path: '/admin/access-control'
@@ -165,18 +669,107 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminAccessControlIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/placement/drives/$id': {
+      id: '/_app/placement/drives/$id'
+      path: '/$id'
+      fullPath: '/placement/drives/$id'
+      preLoaderRoute: typeof AppPlacementDrivesIdRouteImport
+      parentRoute: typeof AppPlacementDrivesRoute
+    }
+    '/_app/placement/ai-assessments/take': {
+      id: '/_app/placement/ai-assessments/take'
+      path: '/take'
+      fullPath: '/placement/ai-assessments/take'
+      preLoaderRoute: typeof AppPlacementAiAssessmentsTakeRouteImport
+      parentRoute: typeof AppPlacementAiAssessmentsRoute
+    }
   }
 }
+
+interface AppPlacementAiAssessmentsRouteChildren {
+  AppPlacementAiAssessmentsTakeRoute: typeof AppPlacementAiAssessmentsTakeRoute
+}
+
+const AppPlacementAiAssessmentsRouteChildren: AppPlacementAiAssessmentsRouteChildren =
+  {
+    AppPlacementAiAssessmentsTakeRoute: AppPlacementAiAssessmentsTakeRoute,
+  }
+
+const AppPlacementAiAssessmentsRouteWithChildren =
+  AppPlacementAiAssessmentsRoute._addFileChildren(
+    AppPlacementAiAssessmentsRouteChildren,
+  )
+
+interface AppPlacementDrivesRouteChildren {
+  AppPlacementDrivesIdRoute: typeof AppPlacementDrivesIdRoute
+}
+
+const AppPlacementDrivesRouteChildren: AppPlacementDrivesRouteChildren = {
+  AppPlacementDrivesIdRoute: AppPlacementDrivesIdRoute,
+}
+
+const AppPlacementDrivesRouteWithChildren =
+  AppPlacementDrivesRoute._addFileChildren(AppPlacementDrivesRouteChildren)
 
 interface AppRouteChildren {
   AppSplatRoute: typeof AppSplatRoute
   AppDashboardRoute: typeof AppDashboardRoute
+  AppAcademicAttendanceRoute: typeof AppAcademicAttendanceRoute
+  AppAcademicClassesRoute: typeof AppAcademicClassesRoute
+  AppAcademicExaminationsRoute: typeof AppAcademicExaminationsRoute
+  AppAcademicProgramsRoute: typeof AppAcademicProgramsRoute
+  AppAcademicResultsRoute: typeof AppAcademicResultsRoute
+  AppAcademicStudyMaterialRoute: typeof AppAcademicStudyMaterialRoute
+  AppAcademicSubjectsRoute: typeof AppAcademicSubjectsRoute
+  AppAcademicTimetableRoute: typeof AppAcademicTimetableRoute
+  AppAnalyticsReportsRoute: typeof AppAnalyticsReportsRoute
+  AppCommunicationAnnouncementsRoute: typeof AppCommunicationAnnouncementsRoute
+  AppCommunicationInboxRoute: typeof AppCommunicationInboxRoute
+  AppComplianceAicteRoute: typeof AppComplianceAicteRoute
+  AppComplianceNaacRoute: typeof AppComplianceNaacRoute
+  AppComplianceNbaRoute: typeof AppComplianceNbaRoute
+  AppComplianceNirfRoute: typeof AppComplianceNirfRoute
+  AppFinanceDefaultersRoute: typeof AppFinanceDefaultersRoute
+  AppFinanceFeeStructuresRoute: typeof AppFinanceFeeStructuresRoute
+  AppFinanceLedgerRoute: typeof AppFinanceLedgerRoute
+  AppFinanceScholarshipsRoute: typeof AppFinanceScholarshipsRoute
+  AppPlacementAiAssessmentsRoute: typeof AppPlacementAiAssessmentsRouteWithChildren
+  AppPlacementAiInterviewsRoute: typeof AppPlacementAiInterviewsRoute
+  AppPlacementCompaniesRoute: typeof AppPlacementCompaniesRoute
+  AppPlacementDrivesRoute: typeof AppPlacementDrivesRouteWithChildren
+  AppPlacementJobProfilesRoute: typeof AppPlacementJobProfilesRoute
+  AppPlacementOffersRoute: typeof AppPlacementOffersRoute
   AppAdminAccessControlIndexRoute: typeof AppAdminAccessControlIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppSplatRoute: AppSplatRoute,
   AppDashboardRoute: AppDashboardRoute,
+  AppAcademicAttendanceRoute: AppAcademicAttendanceRoute,
+  AppAcademicClassesRoute: AppAcademicClassesRoute,
+  AppAcademicExaminationsRoute: AppAcademicExaminationsRoute,
+  AppAcademicProgramsRoute: AppAcademicProgramsRoute,
+  AppAcademicResultsRoute: AppAcademicResultsRoute,
+  AppAcademicStudyMaterialRoute: AppAcademicStudyMaterialRoute,
+  AppAcademicSubjectsRoute: AppAcademicSubjectsRoute,
+  AppAcademicTimetableRoute: AppAcademicTimetableRoute,
+  AppAnalyticsReportsRoute: AppAnalyticsReportsRoute,
+  AppCommunicationAnnouncementsRoute: AppCommunicationAnnouncementsRoute,
+  AppCommunicationInboxRoute: AppCommunicationInboxRoute,
+  AppComplianceAicteRoute: AppComplianceAicteRoute,
+  AppComplianceNaacRoute: AppComplianceNaacRoute,
+  AppComplianceNbaRoute: AppComplianceNbaRoute,
+  AppComplianceNirfRoute: AppComplianceNirfRoute,
+  AppFinanceDefaultersRoute: AppFinanceDefaultersRoute,
+  AppFinanceFeeStructuresRoute: AppFinanceFeeStructuresRoute,
+  AppFinanceLedgerRoute: AppFinanceLedgerRoute,
+  AppFinanceScholarshipsRoute: AppFinanceScholarshipsRoute,
+  AppPlacementAiAssessmentsRoute: AppPlacementAiAssessmentsRouteWithChildren,
+  AppPlacementAiInterviewsRoute: AppPlacementAiInterviewsRoute,
+  AppPlacementCompaniesRoute: AppPlacementCompaniesRoute,
+  AppPlacementDrivesRoute: AppPlacementDrivesRouteWithChildren,
+  AppPlacementJobProfilesRoute: AppPlacementJobProfilesRoute,
+  AppPlacementOffersRoute: AppPlacementOffersRoute,
   AppAdminAccessControlIndexRoute: AppAdminAccessControlIndexRoute,
 }
 
