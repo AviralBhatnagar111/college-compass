@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { useCommStore } from "@/stores";
-import { Plus, Bell, Mail, MessageSquare, Send, FileTemplate as FT, Eye } from "lucide-react";
+import { Plus, Bell, Mail, MessageSquare, Send, FileText as FT, Eye } from "lucide-react";
 import { useState } from "react";
 import { KpiCard } from "@/components/common/KpiCard";
 import { toast } from "sonner";
