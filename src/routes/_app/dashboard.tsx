@@ -11,6 +11,7 @@ import { ROLE_LABEL } from "@/lib/types";
 import {
   Users, GraduationCap, ClipboardList, Wallet, Briefcase, ShieldCheck,
   CheckCircle2, XCircle, Calendar, Award, BookMarked, KeyRound,
+  BadgeCheck, FileText,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
