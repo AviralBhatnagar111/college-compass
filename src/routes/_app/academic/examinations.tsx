@@ -39,7 +39,7 @@ function ExamsPage() {
       </div>
       <Card className="p-0">
         <Table>
-          <TableHeader><TableRow><TableHead>Exam</TableHead><TableHead>Subject</TableHead><TableHead>Type</TableHead><TableHead>Date</TableHead><TableHead>Duration</TableHead><TableHead>Max Marks</TableHead><TableHead>Sections</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
+          <TableHeader><TableRow><TableHead>Exam</TableHead><TableHead>Subject</TableHead><TableHead>Type</TableHead><TableHead>Date</TableHead><TableHead>Duration</TableHead><TableHead>Max</TableHead><TableHead>Sections</TableHead><TableHead>Status</TableHead><TableHead></TableHead></TableRow></TableHeader>
           <TableBody>
             {EXAMS.map(e => (
               <TableRow key={e.id} className="hover:bg-accent/40">
