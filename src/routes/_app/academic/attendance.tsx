@@ -31,9 +31,9 @@ const markStyle: Record<Mark, string> = {
 function AttendancePage() {
   const sections = useAcademicStore(s => s.sections);
   const subjects = useAcademicStore(s => s.subjects);
-  const saveAttendance = useAcademicStore(s => s.saveAttendance);
   const attendance = useAcademicStore(s => s.attendance);
   const users = useUsersStore(s => s.users);
+  const { user } = useAccess();
 
   const [secId, setSecId] = useState("CSE-A1");
   const [subId, setSubId] = useState("SUB_DBMS");
@@ -44,11 +44,12 @@ function AttendancePage() {
   const counts = MARKS.reduce((acc, m) => ({ ...acc, [m]: Object.values(marks).filter(v => v === m).length }), {} as Record<Mark, number>);
 
   const handleSave = () => {
-    saveAttendance({
-      id: `att_${today}_${subId}_manual`, sectionId: secId, subjectId: subId,
-      facultyId: "u_fac_anjali", date: today, slot: 1, marks, submittedAt: new Date().toISOString(),
-    });
-    toast.success("Attendance saved", { description: `${Object.keys(marks).length} students marked` });
+    saveAttendanceCascade({
+      id: `att_${today}_${subId}_${Date.now().toString(36)}`, sectionId: secId, subjectId: subId,
+      facultyId: user?.id ?? "u_fac_anjali", date: today, slot: 1, marks, submittedAt: new Date().toISOString(),
+    }, user?.id ?? "u_fac_anjali");
+    const absent = Object.values(marks).filter(v => v === "A").length;
+    toast.success("Attendance saved", { description: `${Object.keys(marks).length} marked · ${absent} absent parents notified` });
   };
 
   const recent = attendance.filter(a => a.sectionId === secId).slice(0, 8);
