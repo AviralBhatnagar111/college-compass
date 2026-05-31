@@ -15,6 +15,7 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppProfileRouteImport } from './routes/_app/profile'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
+import { Route as AppAccessDeniedRouteImport } from './routes/_app/access-denied'
 import { Route as AppSplatRouteImport } from './routes/_app/$'
 import { Route as AppPlacementOffersRouteImport } from './routes/_app/placement/offers'
 import { Route as AppPlacementJobProfilesRouteImport } from './routes/_app/placement/job-profiles'
@@ -87,6 +88,11 @@ const AppProfileRoute = AppProfileRouteImport.update({
 const AppDashboardRoute = AppDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAccessDeniedRoute = AppAccessDeniedRouteImport.update({
+  id: '/access-denied',
+  path: '/access-denied',
   getParentRoute: () => AppRoute,
 } as any)
 const AppSplatRoute = AppSplatRouteImport.update({
@@ -327,6 +333,7 @@ export interface FileRoutesByFullPath {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/$': typeof AppSplatRoute
+  '/access-denied': typeof AppAccessDeniedRoute
   '/dashboard': typeof AppDashboardRoute
   '/profile': typeof AppProfileRoute
   '/academic/attendance': typeof AppAcademicAttendanceRoute
@@ -378,6 +385,7 @@ export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/$': typeof AppSplatRoute
+  '/access-denied': typeof AppAccessDeniedRoute
   '/dashboard': typeof AppDashboardRoute
   '/profile': typeof AppProfileRoute
   '/academic/attendance': typeof AppAcademicAttendanceRoute
@@ -431,6 +439,7 @@ export interface FileRoutesById {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/_app/$': typeof AppSplatRoute
+  '/_app/access-denied': typeof AppAccessDeniedRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/profile': typeof AppProfileRoute
   '/_app/academic/attendance': typeof AppAcademicAttendanceRoute
@@ -484,6 +493,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/$'
+    | '/access-denied'
     | '/dashboard'
     | '/profile'
     | '/academic/attendance'
@@ -535,6 +545,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/$'
+    | '/access-denied'
     | '/dashboard'
     | '/profile'
     | '/academic/attendance'
@@ -587,6 +598,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/_app/$'
+    | '/_app/access-denied'
     | '/_app/dashboard'
     | '/_app/profile'
     | '/_app/academic/attendance'
@@ -683,6 +695,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof AppDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/access-denied': {
+      id: '/_app/access-denied'
+      path: '/access-denied'
+      fullPath: '/access-denied'
+      preLoaderRoute: typeof AppAccessDeniedRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/$': {
@@ -1049,6 +1068,7 @@ const AppAdminAccessControlAccessPacksRouteWithChildren =
 
 interface AppRouteChildren {
   AppSplatRoute: typeof AppSplatRoute
+  AppAccessDeniedRoute: typeof AppAccessDeniedRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppProfileRoute: typeof AppProfileRoute
   AppAcademicAttendanceRoute: typeof AppAcademicAttendanceRoute
@@ -1094,6 +1114,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppSplatRoute: AppSplatRoute,
+  AppAccessDeniedRoute: AppAccessDeniedRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppProfileRoute: AppProfileRoute,
   AppAcademicAttendanceRoute: AppAcademicAttendanceRoute,
