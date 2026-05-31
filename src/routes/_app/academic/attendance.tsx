@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAcademicStore, useUsersStore } from "@/stores";
+import { useAccess } from "@/lib/access";
+import { saveAttendanceCascade } from "@/lib/cascade";
 import { Check, X, Clock, ClipboardCheck, Save } from "lucide-react";
 import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils";

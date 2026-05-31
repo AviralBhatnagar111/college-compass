@@ -58,6 +58,7 @@ import { Route as AppAdminAccessControlRequestsRouteImport } from './routes/_app
 import { Route as AppAdminAccessControlPeopleRouteImport } from './routes/_app/admin/access-control/people'
 import { Route as AppAdminAccessControlActivityRouteImport } from './routes/_app/admin/access-control/activity'
 import { Route as AppAdminAccessControlAccessPacksRouteImport } from './routes/_app/admin/access-control/access-packs'
+import { Route as AppAcademicExaminationsIdRouteImport } from './routes/_app/academic/examinations.$id'
 import { Route as AppAdminAccessControlUsersIdRouteImport } from './routes/_app/admin/access-control/users.$id'
 import { Route as AppAdminAccessControlAccessPacksIdRouteImport } from './routes/_app/admin/access-control/access-packs.$id'
 
@@ -315,6 +316,12 @@ const AppAdminAccessControlAccessPacksRoute =
     path: '/admin/access-control/access-packs',
     getParentRoute: () => AppRoute,
   } as any)
+const AppAcademicExaminationsIdRoute =
+  AppAcademicExaminationsIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => AppAcademicExaminationsRoute,
+  } as any)
 const AppAdminAccessControlUsersIdRoute =
   AppAdminAccessControlUsersIdRouteImport.update({
     id: '/admin/access-control/users/$id',
@@ -338,7 +345,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof AppProfileRoute
   '/academic/attendance': typeof AppAcademicAttendanceRoute
   '/academic/classes': typeof AppAcademicClassesRoute
-  '/academic/examinations': typeof AppAcademicExaminationsRoute
+  '/academic/examinations': typeof AppAcademicExaminationsRouteWithChildren
   '/academic/programs': typeof AppAcademicProgramsRoute
   '/academic/results': typeof AppAcademicResultsRoute
   '/academic/study-material': typeof AppAcademicStudyMaterialRoute
@@ -369,6 +376,7 @@ export interface FileRoutesByFullPath {
   '/placement/drives': typeof AppPlacementDrivesRouteWithChildren
   '/placement/job-profiles': typeof AppPlacementJobProfilesRoute
   '/placement/offers': typeof AppPlacementOffersRoute
+  '/academic/examinations/$id': typeof AppAcademicExaminationsIdRoute
   '/admin/access-control/access-packs': typeof AppAdminAccessControlAccessPacksRouteWithChildren
   '/admin/access-control/activity': typeof AppAdminAccessControlActivityRoute
   '/admin/access-control/people': typeof AppAdminAccessControlPeopleRoute
@@ -390,7 +398,7 @@ export interface FileRoutesByTo {
   '/profile': typeof AppProfileRoute
   '/academic/attendance': typeof AppAcademicAttendanceRoute
   '/academic/classes': typeof AppAcademicClassesRoute
-  '/academic/examinations': typeof AppAcademicExaminationsRoute
+  '/academic/examinations': typeof AppAcademicExaminationsRouteWithChildren
   '/academic/programs': typeof AppAcademicProgramsRoute
   '/academic/results': typeof AppAcademicResultsRoute
   '/academic/study-material': typeof AppAcademicStudyMaterialRoute
@@ -421,6 +429,7 @@ export interface FileRoutesByTo {
   '/placement/drives': typeof AppPlacementDrivesRouteWithChildren
   '/placement/job-profiles': typeof AppPlacementJobProfilesRoute
   '/placement/offers': typeof AppPlacementOffersRoute
+  '/academic/examinations/$id': typeof AppAcademicExaminationsIdRoute
   '/admin/access-control/access-packs': typeof AppAdminAccessControlAccessPacksRouteWithChildren
   '/admin/access-control/activity': typeof AppAdminAccessControlActivityRoute
   '/admin/access-control/people': typeof AppAdminAccessControlPeopleRoute
@@ -444,7 +453,7 @@ export interface FileRoutesById {
   '/_app/profile': typeof AppProfileRoute
   '/_app/academic/attendance': typeof AppAcademicAttendanceRoute
   '/_app/academic/classes': typeof AppAcademicClassesRoute
-  '/_app/academic/examinations': typeof AppAcademicExaminationsRoute
+  '/_app/academic/examinations': typeof AppAcademicExaminationsRouteWithChildren
   '/_app/academic/programs': typeof AppAcademicProgramsRoute
   '/_app/academic/results': typeof AppAcademicResultsRoute
   '/_app/academic/study-material': typeof AppAcademicStudyMaterialRoute
@@ -475,6 +484,7 @@ export interface FileRoutesById {
   '/_app/placement/drives': typeof AppPlacementDrivesRouteWithChildren
   '/_app/placement/job-profiles': typeof AppPlacementJobProfilesRoute
   '/_app/placement/offers': typeof AppPlacementOffersRoute
+  '/_app/academic/examinations/$id': typeof AppAcademicExaminationsIdRoute
   '/_app/admin/access-control/access-packs': typeof AppAdminAccessControlAccessPacksRouteWithChildren
   '/_app/admin/access-control/activity': typeof AppAdminAccessControlActivityRoute
   '/_app/admin/access-control/people': typeof AppAdminAccessControlPeopleRoute
@@ -529,6 +539,7 @@ export interface FileRouteTypes {
     | '/placement/drives'
     | '/placement/job-profiles'
     | '/placement/offers'
+    | '/academic/examinations/$id'
     | '/admin/access-control/access-packs'
     | '/admin/access-control/activity'
     | '/admin/access-control/people'
@@ -581,6 +592,7 @@ export interface FileRouteTypes {
     | '/placement/drives'
     | '/placement/job-profiles'
     | '/placement/offers'
+    | '/academic/examinations/$id'
     | '/admin/access-control/access-packs'
     | '/admin/access-control/activity'
     | '/admin/access-control/people'
@@ -634,6 +646,7 @@ export interface FileRouteTypes {
     | '/_app/placement/drives'
     | '/_app/placement/job-profiles'
     | '/_app/placement/offers'
+    | '/_app/academic/examinations/$id'
     | '/_app/admin/access-control/access-packs'
     | '/_app/admin/access-control/activity'
     | '/_app/admin/access-control/people'
@@ -998,6 +1011,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminAccessControlAccessPacksRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/academic/examinations/$id': {
+      id: '/_app/academic/examinations/$id'
+      path: '/$id'
+      fullPath: '/academic/examinations/$id'
+      preLoaderRoute: typeof AppAcademicExaminationsIdRouteImport
+      parentRoute: typeof AppAcademicExaminationsRoute
+    }
     '/_app/admin/access-control/users/$id': {
       id: '/_app/admin/access-control/users/$id'
       path: '/admin/access-control/users/$id'
@@ -1014,6 +1034,20 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface AppAcademicExaminationsRouteChildren {
+  AppAcademicExaminationsIdRoute: typeof AppAcademicExaminationsIdRoute
+}
+
+const AppAcademicExaminationsRouteChildren: AppAcademicExaminationsRouteChildren =
+  {
+    AppAcademicExaminationsIdRoute: AppAcademicExaminationsIdRoute,
+  }
+
+const AppAcademicExaminationsRouteWithChildren =
+  AppAcademicExaminationsRoute._addFileChildren(
+    AppAcademicExaminationsRouteChildren,
+  )
 
 interface AppPeopleStudentsRouteChildren {
   AppPeopleStudentsIdRoute: typeof AppPeopleStudentsIdRoute
@@ -1073,7 +1107,7 @@ interface AppRouteChildren {
   AppProfileRoute: typeof AppProfileRoute
   AppAcademicAttendanceRoute: typeof AppAcademicAttendanceRoute
   AppAcademicClassesRoute: typeof AppAcademicClassesRoute
-  AppAcademicExaminationsRoute: typeof AppAcademicExaminationsRoute
+  AppAcademicExaminationsRoute: typeof AppAcademicExaminationsRouteWithChildren
   AppAcademicProgramsRoute: typeof AppAcademicProgramsRoute
   AppAcademicResultsRoute: typeof AppAcademicResultsRoute
   AppAcademicStudyMaterialRoute: typeof AppAcademicStudyMaterialRoute
@@ -1119,7 +1153,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppProfileRoute: AppProfileRoute,
   AppAcademicAttendanceRoute: AppAcademicAttendanceRoute,
   AppAcademicClassesRoute: AppAcademicClassesRoute,
-  AppAcademicExaminationsRoute: AppAcademicExaminationsRoute,
+  AppAcademicExaminationsRoute: AppAcademicExaminationsRouteWithChildren,
   AppAcademicProgramsRoute: AppAcademicProgramsRoute,
   AppAcademicResultsRoute: AppAcademicResultsRoute,
   AppAcademicStudyMaterialRoute: AppAcademicStudyMaterialRoute,
