@@ -1,11 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useAcademicStore } from "@/stores";
-import { Plus, Calendar, FileText, ClipboardCheck } from "lucide-react";
+import { Plus, Calendar, FileText, ClipboardCheck, ChevronRight } from "lucide-react";
 import { KpiCard } from "@/components/common/KpiCard";
 
 export const Route = createFileRoute("/_app/academic/examinations")({
