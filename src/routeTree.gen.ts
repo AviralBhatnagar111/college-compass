@@ -25,6 +25,7 @@ import { Route as AppPlacementAiAssessmentsRouteImport } from './routes/_app/pla
 import { Route as AppPeopleStudentsRouteImport } from './routes/_app/people/students'
 import { Route as AppPeopleParentsRouteImport } from './routes/_app/people/parents'
 import { Route as AppPeopleFacultyRouteImport } from './routes/_app/people/faculty'
+import { Route as AppMyFeesRouteImport } from './routes/_app/my/fees'
 import { Route as AppFinanceScholarshipsRouteImport } from './routes/_app/finance/scholarships'
 import { Route as AppFinanceLedgerRouteImport } from './routes/_app/finance/ledger'
 import { Route as AppFinanceFeeStructuresRouteImport } from './routes/_app/finance/fee-structures'
@@ -137,6 +138,11 @@ const AppPeopleParentsRoute = AppPeopleParentsRouteImport.update({
 const AppPeopleFacultyRoute = AppPeopleFacultyRouteImport.update({
   id: '/people/faculty',
   path: '/people/faculty',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMyFeesRoute = AppMyFeesRouteImport.update({
+  id: '/my/fees',
+  path: '/my/fees',
   getParentRoute: () => AppRoute,
 } as any)
 const AppFinanceScholarshipsRoute = AppFinanceScholarshipsRouteImport.update({
@@ -339,6 +345,7 @@ export interface FileRoutesByFullPath {
   '/finance/fee-structures': typeof AppFinanceFeeStructuresRoute
   '/finance/ledger': typeof AppFinanceLedgerRoute
   '/finance/scholarships': typeof AppFinanceScholarshipsRoute
+  '/my/fees': typeof AppMyFeesRoute
   '/people/faculty': typeof AppPeopleFacultyRoute
   '/people/parents': typeof AppPeopleParentsRoute
   '/people/students': typeof AppPeopleStudentsRouteWithChildren
@@ -388,6 +395,7 @@ export interface FileRoutesByTo {
   '/finance/fee-structures': typeof AppFinanceFeeStructuresRoute
   '/finance/ledger': typeof AppFinanceLedgerRoute
   '/finance/scholarships': typeof AppFinanceScholarshipsRoute
+  '/my/fees': typeof AppMyFeesRoute
   '/people/faculty': typeof AppPeopleFacultyRoute
   '/people/parents': typeof AppPeopleParentsRoute
   '/people/students': typeof AppPeopleStudentsRouteWithChildren
@@ -439,6 +447,7 @@ export interface FileRoutesById {
   '/_app/finance/fee-structures': typeof AppFinanceFeeStructuresRoute
   '/_app/finance/ledger': typeof AppFinanceLedgerRoute
   '/_app/finance/scholarships': typeof AppFinanceScholarshipsRoute
+  '/_app/my/fees': typeof AppMyFeesRoute
   '/_app/people/faculty': typeof AppPeopleFacultyRoute
   '/_app/people/parents': typeof AppPeopleParentsRoute
   '/_app/people/students': typeof AppPeopleStudentsRouteWithChildren
@@ -490,6 +499,7 @@ export interface FileRouteTypes {
     | '/finance/fee-structures'
     | '/finance/ledger'
     | '/finance/scholarships'
+    | '/my/fees'
     | '/people/faculty'
     | '/people/parents'
     | '/people/students'
@@ -539,6 +549,7 @@ export interface FileRouteTypes {
     | '/finance/fee-structures'
     | '/finance/ledger'
     | '/finance/scholarships'
+    | '/my/fees'
     | '/people/faculty'
     | '/people/parents'
     | '/people/students'
@@ -589,6 +600,7 @@ export interface FileRouteTypes {
     | '/_app/finance/fee-structures'
     | '/_app/finance/ledger'
     | '/_app/finance/scholarships'
+    | '/_app/my/fees'
     | '/_app/people/faculty'
     | '/_app/people/parents'
     | '/_app/people/students'
@@ -729,6 +741,13 @@ declare module '@tanstack/react-router' {
       path: '/people/faculty'
       fullPath: '/people/faculty'
       preLoaderRoute: typeof AppPeopleFacultyRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/my/fees': {
+      id: '/_app/my/fees'
+      path: '/my/fees'
+      fullPath: '/my/fees'
+      preLoaderRoute: typeof AppMyFeesRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/finance/scholarships': {
@@ -1035,6 +1054,7 @@ interface AppRouteChildren {
   AppFinanceFeeStructuresRoute: typeof AppFinanceFeeStructuresRoute
   AppFinanceLedgerRoute: typeof AppFinanceLedgerRoute
   AppFinanceScholarshipsRoute: typeof AppFinanceScholarshipsRoute
+  AppMyFeesRoute: typeof AppMyFeesRoute
   AppPeopleFacultyRoute: typeof AppPeopleFacultyRoute
   AppPeopleParentsRoute: typeof AppPeopleParentsRoute
   AppPeopleStudentsRoute: typeof AppPeopleStudentsRouteWithChildren
@@ -1078,6 +1098,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppFinanceFeeStructuresRoute: AppFinanceFeeStructuresRoute,
   AppFinanceLedgerRoute: AppFinanceLedgerRoute,
   AppFinanceScholarshipsRoute: AppFinanceScholarshipsRoute,
+  AppMyFeesRoute: AppMyFeesRoute,
   AppPeopleFacultyRoute: AppPeopleFacultyRoute,
   AppPeopleParentsRoute: AppPeopleParentsRoute,
   AppPeopleStudentsRoute: AppPeopleStudentsRouteWithChildren,
