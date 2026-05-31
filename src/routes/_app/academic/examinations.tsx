@@ -1,11 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useAcademicStore } from "@/stores";
-import { Plus, Calendar, FileText, ClipboardCheck } from "lucide-react";
+import { Plus, Calendar, FileText, ClipboardCheck, ChevronRight } from "lucide-react";
 import { KpiCard } from "@/components/common/KpiCard";
 
 export const Route = createFileRoute("/_app/academic/examinations")({
@@ -40,10 +39,10 @@ function ExamsPage() {
       </div>
       <Card className="p-0">
         <Table>
-          <TableHeader><TableRow><TableHead>Exam</TableHead><TableHead>Subject</TableHead><TableHead>Type</TableHead><TableHead>Date</TableHead><TableHead>Duration</TableHead><TableHead>Max Marks</TableHead><TableHead>Sections</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
+          <TableHeader><TableRow><TableHead>Exam</TableHead><TableHead>Subject</TableHead><TableHead>Type</TableHead><TableHead>Date</TableHead><TableHead>Duration</TableHead><TableHead>Max</TableHead><TableHead>Sections</TableHead><TableHead>Status</TableHead><TableHead></TableHead></TableRow></TableHeader>
           <TableBody>
             {EXAMS.map(e => (
-              <TableRow key={e.id}>
+              <TableRow key={e.id} className="hover:bg-accent/40">
                 <TableCell className="font-medium">{e.name}</TableCell>
                 <TableCell><span className="font-mono text-xs text-muted-foreground">{e.subjectCode}</span> · {e.subject}</TableCell>
                 <TableCell><Badge variant="outline">{e.type}</Badge></TableCell>
@@ -52,6 +51,7 @@ function ExamsPage() {
                 <TableCell>{e.maxMarks}</TableCell>
                 <TableCell>{e.sections.join(", ")}</TableCell>
                 <TableCell><Badge variant="secondary" className={statusStyle[e.status]}>{e.status.replace("-"," ")}</Badge></TableCell>
+                <TableCell><Button asChild size="sm" variant="ghost"><Link to="/academic/examinations/$id" params={{ id: e.id }}>Open <ChevronRight className="h-3 w-3 ml-1" /></Link></Button></TableCell>
               </TableRow>
             ))}
           </TableBody>

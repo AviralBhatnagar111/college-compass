@@ -15,6 +15,7 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppProfileRouteImport } from './routes/_app/profile'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
+import { Route as AppAccessDeniedRouteImport } from './routes/_app/access-denied'
 import { Route as AppSplatRouteImport } from './routes/_app/$'
 import { Route as AppPlacementOffersRouteImport } from './routes/_app/placement/offers'
 import { Route as AppPlacementJobProfilesRouteImport } from './routes/_app/placement/job-profiles'
@@ -25,6 +26,8 @@ import { Route as AppPlacementAiAssessmentsRouteImport } from './routes/_app/pla
 import { Route as AppPeopleStudentsRouteImport } from './routes/_app/people/students'
 import { Route as AppPeopleParentsRouteImport } from './routes/_app/people/parents'
 import { Route as AppPeopleFacultyRouteImport } from './routes/_app/people/faculty'
+import { Route as AppMyResultsRouteImport } from './routes/_app/my/results'
+import { Route as AppMyFeesRouteImport } from './routes/_app/my/fees'
 import { Route as AppFinanceScholarshipsRouteImport } from './routes/_app/finance/scholarships'
 import { Route as AppFinanceLedgerRouteImport } from './routes/_app/finance/ledger'
 import { Route as AppFinanceFeeStructuresRouteImport } from './routes/_app/finance/fee-structures'
@@ -55,6 +58,7 @@ import { Route as AppAdminAccessControlRequestsRouteImport } from './routes/_app
 import { Route as AppAdminAccessControlPeopleRouteImport } from './routes/_app/admin/access-control/people'
 import { Route as AppAdminAccessControlActivityRouteImport } from './routes/_app/admin/access-control/activity'
 import { Route as AppAdminAccessControlAccessPacksRouteImport } from './routes/_app/admin/access-control/access-packs'
+import { Route as AppAcademicExaminationsIdRouteImport } from './routes/_app/academic/examinations.$id'
 import { Route as AppAdminAccessControlUsersIdRouteImport } from './routes/_app/admin/access-control/users.$id'
 import { Route as AppAdminAccessControlAccessPacksIdRouteImport } from './routes/_app/admin/access-control/access-packs.$id'
 
@@ -85,6 +89,11 @@ const AppProfileRoute = AppProfileRouteImport.update({
 const AppDashboardRoute = AppDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAccessDeniedRoute = AppAccessDeniedRouteImport.update({
+  id: '/access-denied',
+  path: '/access-denied',
   getParentRoute: () => AppRoute,
 } as any)
 const AppSplatRoute = AppSplatRouteImport.update({
@@ -137,6 +146,16 @@ const AppPeopleParentsRoute = AppPeopleParentsRouteImport.update({
 const AppPeopleFacultyRoute = AppPeopleFacultyRouteImport.update({
   id: '/people/faculty',
   path: '/people/faculty',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMyResultsRoute = AppMyResultsRouteImport.update({
+  id: '/my/results',
+  path: '/my/results',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMyFeesRoute = AppMyFeesRouteImport.update({
+  id: '/my/fees',
+  path: '/my/fees',
   getParentRoute: () => AppRoute,
 } as any)
 const AppFinanceScholarshipsRoute = AppFinanceScholarshipsRouteImport.update({
@@ -297,6 +316,12 @@ const AppAdminAccessControlAccessPacksRoute =
     path: '/admin/access-control/access-packs',
     getParentRoute: () => AppRoute,
   } as any)
+const AppAcademicExaminationsIdRoute =
+  AppAcademicExaminationsIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => AppAcademicExaminationsRoute,
+  } as any)
 const AppAdminAccessControlUsersIdRoute =
   AppAdminAccessControlUsersIdRouteImport.update({
     id: '/admin/access-control/users/$id',
@@ -315,11 +340,12 @@ export interface FileRoutesByFullPath {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/$': typeof AppSplatRoute
+  '/access-denied': typeof AppAccessDeniedRoute
   '/dashboard': typeof AppDashboardRoute
   '/profile': typeof AppProfileRoute
   '/academic/attendance': typeof AppAcademicAttendanceRoute
   '/academic/classes': typeof AppAcademicClassesRoute
-  '/academic/examinations': typeof AppAcademicExaminationsRoute
+  '/academic/examinations': typeof AppAcademicExaminationsRouteWithChildren
   '/academic/programs': typeof AppAcademicProgramsRoute
   '/academic/results': typeof AppAcademicResultsRoute
   '/academic/study-material': typeof AppAcademicStudyMaterialRoute
@@ -339,6 +365,8 @@ export interface FileRoutesByFullPath {
   '/finance/fee-structures': typeof AppFinanceFeeStructuresRoute
   '/finance/ledger': typeof AppFinanceLedgerRoute
   '/finance/scholarships': typeof AppFinanceScholarshipsRoute
+  '/my/fees': typeof AppMyFeesRoute
+  '/my/results': typeof AppMyResultsRoute
   '/people/faculty': typeof AppPeopleFacultyRoute
   '/people/parents': typeof AppPeopleParentsRoute
   '/people/students': typeof AppPeopleStudentsRouteWithChildren
@@ -348,6 +376,7 @@ export interface FileRoutesByFullPath {
   '/placement/drives': typeof AppPlacementDrivesRouteWithChildren
   '/placement/job-profiles': typeof AppPlacementJobProfilesRoute
   '/placement/offers': typeof AppPlacementOffersRoute
+  '/academic/examinations/$id': typeof AppAcademicExaminationsIdRoute
   '/admin/access-control/access-packs': typeof AppAdminAccessControlAccessPacksRouteWithChildren
   '/admin/access-control/activity': typeof AppAdminAccessControlActivityRoute
   '/admin/access-control/people': typeof AppAdminAccessControlPeopleRoute
@@ -364,11 +393,12 @@ export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/$': typeof AppSplatRoute
+  '/access-denied': typeof AppAccessDeniedRoute
   '/dashboard': typeof AppDashboardRoute
   '/profile': typeof AppProfileRoute
   '/academic/attendance': typeof AppAcademicAttendanceRoute
   '/academic/classes': typeof AppAcademicClassesRoute
-  '/academic/examinations': typeof AppAcademicExaminationsRoute
+  '/academic/examinations': typeof AppAcademicExaminationsRouteWithChildren
   '/academic/programs': typeof AppAcademicProgramsRoute
   '/academic/results': typeof AppAcademicResultsRoute
   '/academic/study-material': typeof AppAcademicStudyMaterialRoute
@@ -388,6 +418,8 @@ export interface FileRoutesByTo {
   '/finance/fee-structures': typeof AppFinanceFeeStructuresRoute
   '/finance/ledger': typeof AppFinanceLedgerRoute
   '/finance/scholarships': typeof AppFinanceScholarshipsRoute
+  '/my/fees': typeof AppMyFeesRoute
+  '/my/results': typeof AppMyResultsRoute
   '/people/faculty': typeof AppPeopleFacultyRoute
   '/people/parents': typeof AppPeopleParentsRoute
   '/people/students': typeof AppPeopleStudentsRouteWithChildren
@@ -397,6 +429,7 @@ export interface FileRoutesByTo {
   '/placement/drives': typeof AppPlacementDrivesRouteWithChildren
   '/placement/job-profiles': typeof AppPlacementJobProfilesRoute
   '/placement/offers': typeof AppPlacementOffersRoute
+  '/academic/examinations/$id': typeof AppAcademicExaminationsIdRoute
   '/admin/access-control/access-packs': typeof AppAdminAccessControlAccessPacksRouteWithChildren
   '/admin/access-control/activity': typeof AppAdminAccessControlActivityRoute
   '/admin/access-control/people': typeof AppAdminAccessControlPeopleRoute
@@ -415,11 +448,12 @@ export interface FileRoutesById {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/_app/$': typeof AppSplatRoute
+  '/_app/access-denied': typeof AppAccessDeniedRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/profile': typeof AppProfileRoute
   '/_app/academic/attendance': typeof AppAcademicAttendanceRoute
   '/_app/academic/classes': typeof AppAcademicClassesRoute
-  '/_app/academic/examinations': typeof AppAcademicExaminationsRoute
+  '/_app/academic/examinations': typeof AppAcademicExaminationsRouteWithChildren
   '/_app/academic/programs': typeof AppAcademicProgramsRoute
   '/_app/academic/results': typeof AppAcademicResultsRoute
   '/_app/academic/study-material': typeof AppAcademicStudyMaterialRoute
@@ -439,6 +473,8 @@ export interface FileRoutesById {
   '/_app/finance/fee-structures': typeof AppFinanceFeeStructuresRoute
   '/_app/finance/ledger': typeof AppFinanceLedgerRoute
   '/_app/finance/scholarships': typeof AppFinanceScholarshipsRoute
+  '/_app/my/fees': typeof AppMyFeesRoute
+  '/_app/my/results': typeof AppMyResultsRoute
   '/_app/people/faculty': typeof AppPeopleFacultyRoute
   '/_app/people/parents': typeof AppPeopleParentsRoute
   '/_app/people/students': typeof AppPeopleStudentsRouteWithChildren
@@ -448,6 +484,7 @@ export interface FileRoutesById {
   '/_app/placement/drives': typeof AppPlacementDrivesRouteWithChildren
   '/_app/placement/job-profiles': typeof AppPlacementJobProfilesRoute
   '/_app/placement/offers': typeof AppPlacementOffersRoute
+  '/_app/academic/examinations/$id': typeof AppAcademicExaminationsIdRoute
   '/_app/admin/access-control/access-packs': typeof AppAdminAccessControlAccessPacksRouteWithChildren
   '/_app/admin/access-control/activity': typeof AppAdminAccessControlActivityRoute
   '/_app/admin/access-control/people': typeof AppAdminAccessControlPeopleRoute
@@ -466,6 +503,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/$'
+    | '/access-denied'
     | '/dashboard'
     | '/profile'
     | '/academic/attendance'
@@ -490,6 +528,8 @@ export interface FileRouteTypes {
     | '/finance/fee-structures'
     | '/finance/ledger'
     | '/finance/scholarships'
+    | '/my/fees'
+    | '/my/results'
     | '/people/faculty'
     | '/people/parents'
     | '/people/students'
@@ -499,6 +539,7 @@ export interface FileRouteTypes {
     | '/placement/drives'
     | '/placement/job-profiles'
     | '/placement/offers'
+    | '/academic/examinations/$id'
     | '/admin/access-control/access-packs'
     | '/admin/access-control/activity'
     | '/admin/access-control/people'
@@ -515,6 +556,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/$'
+    | '/access-denied'
     | '/dashboard'
     | '/profile'
     | '/academic/attendance'
@@ -539,6 +581,8 @@ export interface FileRouteTypes {
     | '/finance/fee-structures'
     | '/finance/ledger'
     | '/finance/scholarships'
+    | '/my/fees'
+    | '/my/results'
     | '/people/faculty'
     | '/people/parents'
     | '/people/students'
@@ -548,6 +592,7 @@ export interface FileRouteTypes {
     | '/placement/drives'
     | '/placement/job-profiles'
     | '/placement/offers'
+    | '/academic/examinations/$id'
     | '/admin/access-control/access-packs'
     | '/admin/access-control/activity'
     | '/admin/access-control/people'
@@ -565,6 +610,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/_app/$'
+    | '/_app/access-denied'
     | '/_app/dashboard'
     | '/_app/profile'
     | '/_app/academic/attendance'
@@ -589,6 +635,8 @@ export interface FileRouteTypes {
     | '/_app/finance/fee-structures'
     | '/_app/finance/ledger'
     | '/_app/finance/scholarships'
+    | '/_app/my/fees'
+    | '/_app/my/results'
     | '/_app/people/faculty'
     | '/_app/people/parents'
     | '/_app/people/students'
@@ -598,6 +646,7 @@ export interface FileRouteTypes {
     | '/_app/placement/drives'
     | '/_app/placement/job-profiles'
     | '/_app/placement/offers'
+    | '/_app/academic/examinations/$id'
     | '/_app/admin/access-control/access-packs'
     | '/_app/admin/access-control/activity'
     | '/_app/admin/access-control/people'
@@ -659,6 +708,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof AppDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/access-denied': {
+      id: '/_app/access-denied'
+      path: '/access-denied'
+      fullPath: '/access-denied'
+      preLoaderRoute: typeof AppAccessDeniedRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/$': {
@@ -729,6 +785,20 @@ declare module '@tanstack/react-router' {
       path: '/people/faculty'
       fullPath: '/people/faculty'
       preLoaderRoute: typeof AppPeopleFacultyRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/my/results': {
+      id: '/_app/my/results'
+      path: '/my/results'
+      fullPath: '/my/results'
+      preLoaderRoute: typeof AppMyResultsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/my/fees': {
+      id: '/_app/my/fees'
+      path: '/my/fees'
+      fullPath: '/my/fees'
+      preLoaderRoute: typeof AppMyFeesRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/finance/scholarships': {
@@ -941,6 +1011,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminAccessControlAccessPacksRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/academic/examinations/$id': {
+      id: '/_app/academic/examinations/$id'
+      path: '/$id'
+      fullPath: '/academic/examinations/$id'
+      preLoaderRoute: typeof AppAcademicExaminationsIdRouteImport
+      parentRoute: typeof AppAcademicExaminationsRoute
+    }
     '/_app/admin/access-control/users/$id': {
       id: '/_app/admin/access-control/users/$id'
       path: '/admin/access-control/users/$id'
@@ -957,6 +1034,20 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface AppAcademicExaminationsRouteChildren {
+  AppAcademicExaminationsIdRoute: typeof AppAcademicExaminationsIdRoute
+}
+
+const AppAcademicExaminationsRouteChildren: AppAcademicExaminationsRouteChildren =
+  {
+    AppAcademicExaminationsIdRoute: AppAcademicExaminationsIdRoute,
+  }
+
+const AppAcademicExaminationsRouteWithChildren =
+  AppAcademicExaminationsRoute._addFileChildren(
+    AppAcademicExaminationsRouteChildren,
+  )
 
 interface AppPeopleStudentsRouteChildren {
   AppPeopleStudentsIdRoute: typeof AppPeopleStudentsIdRoute
@@ -1011,11 +1102,12 @@ const AppAdminAccessControlAccessPacksRouteWithChildren =
 
 interface AppRouteChildren {
   AppSplatRoute: typeof AppSplatRoute
+  AppAccessDeniedRoute: typeof AppAccessDeniedRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppProfileRoute: typeof AppProfileRoute
   AppAcademicAttendanceRoute: typeof AppAcademicAttendanceRoute
   AppAcademicClassesRoute: typeof AppAcademicClassesRoute
-  AppAcademicExaminationsRoute: typeof AppAcademicExaminationsRoute
+  AppAcademicExaminationsRoute: typeof AppAcademicExaminationsRouteWithChildren
   AppAcademicProgramsRoute: typeof AppAcademicProgramsRoute
   AppAcademicResultsRoute: typeof AppAcademicResultsRoute
   AppAcademicStudyMaterialRoute: typeof AppAcademicStudyMaterialRoute
@@ -1035,6 +1127,8 @@ interface AppRouteChildren {
   AppFinanceFeeStructuresRoute: typeof AppFinanceFeeStructuresRoute
   AppFinanceLedgerRoute: typeof AppFinanceLedgerRoute
   AppFinanceScholarshipsRoute: typeof AppFinanceScholarshipsRoute
+  AppMyFeesRoute: typeof AppMyFeesRoute
+  AppMyResultsRoute: typeof AppMyResultsRoute
   AppPeopleFacultyRoute: typeof AppPeopleFacultyRoute
   AppPeopleParentsRoute: typeof AppPeopleParentsRoute
   AppPeopleStudentsRoute: typeof AppPeopleStudentsRouteWithChildren
@@ -1054,11 +1148,12 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppSplatRoute: AppSplatRoute,
+  AppAccessDeniedRoute: AppAccessDeniedRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppProfileRoute: AppProfileRoute,
   AppAcademicAttendanceRoute: AppAcademicAttendanceRoute,
   AppAcademicClassesRoute: AppAcademicClassesRoute,
-  AppAcademicExaminationsRoute: AppAcademicExaminationsRoute,
+  AppAcademicExaminationsRoute: AppAcademicExaminationsRouteWithChildren,
   AppAcademicProgramsRoute: AppAcademicProgramsRoute,
   AppAcademicResultsRoute: AppAcademicResultsRoute,
   AppAcademicStudyMaterialRoute: AppAcademicStudyMaterialRoute,
@@ -1078,6 +1173,8 @@ const AppRouteChildren: AppRouteChildren = {
   AppFinanceFeeStructuresRoute: AppFinanceFeeStructuresRoute,
   AppFinanceLedgerRoute: AppFinanceLedgerRoute,
   AppFinanceScholarshipsRoute: AppFinanceScholarshipsRoute,
+  AppMyFeesRoute: AppMyFeesRoute,
+  AppMyResultsRoute: AppMyResultsRoute,
   AppPeopleFacultyRoute: AppPeopleFacultyRoute,
   AppPeopleParentsRoute: AppPeopleParentsRoute,
   AppPeopleStudentsRoute: AppPeopleStudentsRouteWithChildren,
@@ -1107,13 +1204,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
