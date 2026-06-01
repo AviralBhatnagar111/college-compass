@@ -111,14 +111,14 @@ function HoiDashboard() {
           action={<Link to="/admin/access-control/requests" className="text-xs font-medium text-lnx-teal-500 hover:underline">View all ({requests.length})</Link>}>
           <Card className="p-4">
             {requests.length === 0
-              ? <EmptyState title="All caught up" description="No pending approvals" icon={CheckCircle2} />
+              ? <EmptyState title="All caught up" body="No pending approvals" icon={CheckCircle2} />
               : <div className="divide-y">
                   {requests.slice(0, 5).map(r => {
                     const target = users.find(u => u.id === r.userId);
                     return (
                       <div key={r.id} className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
                         <div className="flex min-w-0 items-center gap-3">
-                          <Avatar name={`${target?.firstName} ${target?.lastName}`} color={target?.avatarColor} size="sm" />
+                          <Avatar firstName={"${target?.firstName} ${target?.lastName}".split(" ")[0]} lastName={"${target?.firstName} ${target?.lastName}".split(" ")[1]} color={target?.avatarColor} size="sm" />
                           <div className="min-w-0">
                             <div className="truncate text-sm font-medium text-lnx-navy-800">{target?.firstName} {target?.lastName}</div>
                             <div className="truncate text-xs text-muted-foreground">{r.change} · {r.reason}</div>
@@ -463,7 +463,7 @@ function TpoDashboard() {
               return (
                 <div key={m.id} className="flex items-center gap-3">
                   <div className="w-5 text-center text-xs font-bold text-lnx-navy-800">#{i + 1}</div>
-                  <Avatar name={`${s?.firstName} ${s?.lastName}`} color={s?.avatarColor} size="sm" />
+                  <Avatar firstName={"${s?.firstName} ${s?.lastName}".split(" ")[0]} lastName={"${s?.firstName} ${s?.lastName}".split(" ")[1]} color={s?.avatarColor} size="sm" />
                   <div className="min-w-0 flex-1 text-xs"><div className="truncate font-medium text-lnx-navy-800">{s?.firstName} {s?.lastName}</div><div className="text-muted-foreground">CGPA {s?.cgpa}</div></div>
                   <Badge className="tabular">{m.score}/{m.total}</Badge>
                 </div>
@@ -894,7 +894,7 @@ function FacultyDashboard() {
       <Section title="Today's Schedule">
         <Card className="p-4 space-y-2">
           {todaysSchedule.length === 0
-            ? <EmptyState title="No classes today" description="Enjoy your day" icon={Calendar} />
+            ? <EmptyState title="No classes today" body="Enjoy your day" icon={Calendar} />
             : todaysSchedule.map((c, i) => (
               <div key={i} className="flex items-center justify-between gap-3 rounded-lg border p-3">
                 <div className="flex items-center gap-3">
@@ -1189,7 +1189,7 @@ function ParentDashboard() {
 
   const [wa, setWa] = [true, () => {}];
 
-  if (!child) return <EmptyState title="No child linked" description="Contact registrar to link your child's account" icon={Users} />;
+  if (!child) return <EmptyState title="No child linked" body="Contact registrar to link your child's account" icon={Users} />;
 
   return (
     <>
@@ -1199,7 +1199,7 @@ function ParentDashboard() {
       </div>
 
       <Card className="mb-5 flex items-center gap-4 p-4">
-        <Avatar name={`${child.firstName} ${child.lastName}`} color={child.avatarColor} size="lg" />
+        <Avatar firstName={"${child.firstName} ${child.lastName}".split(" ")[0]} lastName={"${child.firstName} ${child.lastName}".split(" ")[1]} color={child.avatarColor} size="lg" />
         <div className="flex-1">
           <div className="text-lg font-semibold text-lnx-navy-800">{child.firstName} {child.lastName}</div>
           <div className="text-xs text-muted-foreground">{child.rollNo} · {child.department} · Sem 5 · Batch {child.batch}</div>
