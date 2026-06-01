@@ -226,7 +226,7 @@ function HoiDashboard() {
                 const actor = users.find(u => u.id === a.actorId);
                 return (
                   <div key={a.id} className="flex items-center gap-3 py-2 first:pt-0">
-                    <Avatar name={actor ? `${actor.firstName} ${actor.lastName}` : "System"} color={actor?.avatarColor} size="sm" />
+                    <Avatar firstName={actor?.firstName ?? "S"} lastName={actor?.lastName ?? ""} color={actor?.avatarColor} size="sm" />
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-xs text-lnx-navy-800"><strong>{actor?.firstName ?? "System"}</strong> {a.action}</div>
                       <div className="text-[10px] text-muted-foreground">{a.module} · {formatDistanceToNow(new Date(a.at), { addSuffix: true })}</div>
