@@ -1,14 +1,15 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
 import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import {
   Users, GraduationCap, ClipboardList, Wallet, Briefcase, ShieldCheck,
-  CheckCircle2, XCircle, Calendar, Award, BookMarked, KeyRound, BadgeCheck,
-  FileText, AlertTriangle, Clock, TrendingUp, Bell, Plus, FileSpreadsheet,
-  Send, Bot, ScrollText, Building2, ListChecks, Eye, MessageSquare,
-  CreditCard, GitPullRequest, RotateCcw, BookOpen, Activity, MonitorPlay,
-  Phone, Lock, MapPin, DollarSign,
+  Calendar, Award, KeyRound, BadgeCheck, FileText, AlertTriangle, Clock,
+  TrendingUp, Bell, Plus, FileSpreadsheet, Send, Bot, ScrollText, Building2,
+  ListChecks, Eye, MessageSquare, CreditCard, GitPullRequest, RotateCcw,
+  BookOpen, Activity, Phone, Lock, DollarSign, CheckCircle2, XCircle,
+  Stamp, Download, Upload, FileCheck, UserPlus, FilePlus, Megaphone,
+  Banknote, Receipt, FileBarChart, Settings, RefreshCw, Sparkles, Workflow,
 } from "lucide-react";
 
 import { KpiCard } from "@/components/common/KpiCard";
@@ -20,18 +21,35 @@ import { Switch } from "@/components/ui/switch";
 import { Avatar } from "@/components/common/Avatar";
 import { EmptyState } from "@/components/common/EmptyState";
 import { DashboardHero, DemoBanner, Section, QuickAction } from "@/components/dashboard/Chrome";
+import {
+  ActionQueueCard, ConfirmDialog, ReasonDialog, MultiChannelPreviewDialog,
+  PdfPreviewDialog, DigiLockerDialog, BulkTransferDialog, ProgressDialog, RiskFlag,
+} from "@/components/dashboard/ActionQueue";
+import { RazorpayMock } from "@/components/finance/RazorpayMock";
 import { useAccess } from "@/lib/access";
 import {
   useAccessStore, useUsersStore, useAcademicStore, usePlacementStore,
   useFinanceStore, useCommStore, useComplianceStore,
 } from "@/stores";
-import { payFeeCascade } from "@/lib/cascade";
+import {
+  payFeeCascade, resolveAccessRequestCascade, verifyDocumentsCascade,
+  issueCertificateCascade, verifyScholarshipCascade, approveAdmissionCascade,
+  approveRefundCascade, processRefundCascade, approveWaiverCascade,
+  sendFeeReminderCascade, blockExamAccessCascade, disburseScholarshipCascade,
+  overrideEligibilityCascade, lockMarksCascade, publishResultsCascade,
+  nadPushCascade, reviewAiInterviewCascade, sendDriveReminderCascade,
+  sendNudgeCascade, sendDeptAlertCascade, uploadMaterialCascade, optInWhatsappCascade,
+} from "@/lib/cascade";
 import { ROLE_LABEL } from "@/lib/types";
+import type { User, AccessRequest } from "@/lib/types";
 
 export const Route = createFileRoute("/_app/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — LearnNowX" }] }),
   component: DashboardRouter,
 });
+
+const inr = (n: number) => `₹${n.toLocaleString("en-IN")}`;
+const lakhs = (n: number) => `₹${(n / 100000).toFixed(2)}L`;
 
 function DashboardRouter() {
   const { user } = useAccess();
@@ -48,7 +66,7 @@ function DashboardRouter() {
           case "exam_head": return <ExamDashboard />;
           case "hod": return <HodDashboard />;
           case "faculty": return <FacultyDashboard />;
-          case "lab_faculty": return <LabFacultyDashboard />;
+          case "lab_faculty": return <FacultyDashboard isLab />;
           case "student": return <StudentDashboard />;
           case "parent": return <ParentDashboard />;
           default: return <GenericDashboard />;
@@ -58,1338 +76,1644 @@ function DashboardRouter() {
   );
 }
 
-const inr = (n: number) => `₹${n.toLocaleString("en-IN")}`;
-const lakhs = (n: number) => `₹${(n / 100000).toFixed(2)}L`;
-
 // ════════════════════════════════════════════════════════════════════════
-// HOI / DIRECTOR — institutional cockpit
+// HOI / DIRECTOR — Executive cockpit
 // ════════════════════════════════════════════════════════════════════════
 function HoiDashboard() {
   const { user } = useAccess();
   const requests = useAccessStore(s => s.requests).filter(r => r.status === "pending");
-  const resolve = useAccessStore(s => s.resolveRequest);
   const audit = useAccessStore(s => s.audit).slice(0, 8);
   const users = useUsersStore(s => s.users);
   const criteria = useComplianceStore(s => s.criteria);
   const drives = usePlacementStore(s => s.drives);
   const ledger = useFinanceStore(s => s.ledger);
-  const attendance = useAcademicStore(s => s.attendance);
+  const navigate = useNavigate();
 
   const students = users.filter(u => u.role === "student");
   const faculty = users.filter(u => ["faculty","lab_faculty","hod"].includes(u.role));
-  const naacReadiness = Math.round(criteria.reduce((a, c) => a + c.readiness, 0) / criteria.length);
-  const todayAtt = (() => {
-    const recent = attendance.slice(0, 30);
-    if (!recent.length) return 91;
-    let p = 0, t = 0;
-    recent.forEach(r => Object.values(r.marks).forEach(m => { t++; if (m === "P" || m === "ML") p++; }));
-    return t ? Math.round((p / t) * 100) : 91;
-  })();
-  const monthCollection = ledger.filter(l => l.payment).reduce((a, l) => a + (l.payment ?? 0), 0) + 4830000;
-  const placementYtd = 76;
+  const naacReadiness = Math.round(criteria.reduce((a, c) => a + c.readiness, 0) / Math.max(criteria.length, 1));
 
-  // Risk flags
-  const lowAttDept = ["ME"];
-  const bigDefaulters = students.filter(s => (s.attendancePct ?? 100) < 65).length;
-  const redCriteria = criteria.filter(c => c.status === "red");
+  // Approval queue tabs
+  const [tab, setTab] = useState<"access" | "waivers" | "refunds" | "visibility" | "scholarship">("access");
+  const accessReqs = requests.filter(r => r.change.toLowerCase().includes("access"));
+  const waiverReqs: AccessRequest[] = [
+    { id: "wv1", userId: "u_stu_002", requestedBy: "u_registrar", requestedAt: new Date(Date.now()-2*864e5).toISOString(), change: "Fee waiver 30%", reason: "Single-parent income certificate verified", status: "pending" },
+    { id: "wv2", userId: "u_stu_005", requestedBy: "u_registrar", requestedAt: new Date(Date.now()-3*864e5).toISOString(), change: "Fee waiver 50%", reason: "EWS category, family income < 2.5L", status: "pending" },
+    { id: "wv3", userId: "u_stu_008", requestedBy: "u_registrar", requestedAt: new Date(Date.now()-1*864e5).toISOString(), change: "Fee waiver 25%", reason: "Sibling concession", status: "pending" },
+  ];
+  const refundReqs: AccessRequest[] = [
+    { id: "rf1", userId: "u_stu_003", requestedBy: "u_finance", requestedAt: new Date(Date.now()-1*864e5).toISOString(), change: "Refund ₹75,000", reason: "Transfer to another institute", status: "pending" },
+    { id: "rf2", userId: "u_stu_006", requestedBy: "u_finance", requestedAt: new Date(Date.now()-2*864e5).toISOString(), change: "Refund ₹62,500", reason: "Excess fee paid", status: "pending" },
+  ];
+  const visReqs: AccessRequest[] = [
+    { id: "vs1", userId: "u_hod_cse", requestedBy: "u_hod_cse", requestedAt: new Date(Date.now()-4*864e5).toISOString(), change: "Cross-dept visibility: ECE attendance", reason: "Joint research project planning", status: "pending" },
+    { id: "vs2", userId: "u_fac_anjali", requestedBy: "u_fac_anjali", requestedAt: new Date(Date.now()-5*864e5).toISOString(), change: "View ME placement data", reason: "Inter-disciplinary case study", status: "pending" },
+  ];
+  const scholarReqs: AccessRequest[] = [
+    { id: "sc1", userId: "u_stu_007", requestedBy: "u_registrar", requestedAt: new Date(Date.now()-1*864e5).toISOString(), change: "Escalation: NSP scholarship denied", reason: "Re-evaluation requested by parent", status: "pending" },
+  ];
+  const tabData = { access: accessReqs, waivers: waiverReqs, refunds: refundReqs, visibility: visReqs, scholarship: scholarReqs }[tab];
+
+  // Dialog state
+  const [confirmReq, setConfirmReq] = useState<AccessRequest | null>(null);
+  const [rejectReq, setRejectReq] = useState<AccessRequest | null>(null);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [announceOpen, setAnnounceOpen] = useState(false);
+  const [aqarOpen, setAqarOpen] = useState(false);
+  const [alertDept, setAlertDept] = useState<string | null>(null);
+
+  const handleApprove = (req: AccessRequest, comment: string) => {
+    resolveAccessRequestCascade(req.id, "approved", comment, user!.id);
+    toast.success("Approved", { description: req.change });
+  };
+  const handleReject = (req: AccessRequest, reason: string) => {
+    resolveAccessRequestCascade(req.id, "rejected", reason, user!.id);
+    toast("Rejected", { description: req.change });
+  };
 
   return (
     <>
       <DashboardHero user={user!} kpis={
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
-          <KpiCard label="Active Students" value={students.length} icon={GraduationCap} delta={{ value: "+12", up: true }} />
-          <KpiCard label="Faculty" value={faculty.length} icon={Users} delta={{ value: "2 vacant", up: false }} />
-          <KpiCard label="Attendance Today" value={`${todayAtt}%`} icon={ClipboardList} tone={todayAtt >= 80 ? "green" : "amber"} />
-          <KpiCard label="Fees This Month" value={lakhs(monthCollection)} icon={Wallet} delta={{ value: "82% of ₹60L target", up: true }} />
-          <KpiCard label="Placement YTD" value={`${placementYtd}%`} icon={Briefcase} tone="teal" delta={{ value: "↑ from 71%", up: true }} />
-          <KpiCard label="NAAC Readiness" value={`${naacReadiness}%`} icon={ShieldCheck} tone={naacReadiness >= 75 ? "green" : "amber"} />
+          <Link to="/people/students"><KpiCard label="Active Students" value={students.length} icon={GraduationCap} delta={{ value: "+12", up: true }} /></Link>
+          <Link to="/people/faculty"><KpiCard label="Faculty Strength" value={`${faculty.length}/68`} icon={Users} delta={{ value: "4 vacant", up: false }} /></Link>
+          <Link to="/academic/attendance"><KpiCard label="Today's Attendance" value="91%" icon={Activity} tone="teal" /></Link>
+          <Link to="/finance/ledger"><KpiCard label="Month Collection" value={lakhs(48300000)} icon={Wallet} delta={{ value: "98% of target", up: true }} /></Link>
+          <Link to="/placement/offers"><KpiCard label="Placement YTD" value="76%" icon={Briefcase} tone="amber" /></Link>
+          <Link to="/compliance/naac"><KpiCard label="NAAC Readiness" value={`${naacReadiness}%`} icon={ShieldCheck} tone={naacReadiness >= 80 ? "teal" : "amber"} /></Link>
         </div>
       } />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Section title="Pending Approvals" className="lg:col-span-2"
-          action={<Link to="/admin/access-control/requests" className="text-xs font-medium text-lnx-teal-500 hover:underline">View all ({requests.length})</Link>}>
-          <Card className="p-4">
-            {requests.length === 0
-              ? <EmptyState title="All caught up" body="No pending approvals" icon={CheckCircle2} />
-              : <div className="divide-y">
-                  {requests.slice(0, 5).map(r => {
-                    const target = users.find(u => u.id === r.userId);
+        <div className="lg:col-span-2 space-y-4">
+          <Section title="Pending Approvals" action={<Badge variant="outline" className="border-lnx-red-500/30 bg-lnx-red-500/5 text-lnx-red-500">{accessReqs.length + waiverReqs.length + refundReqs.length + visReqs.length + scholarReqs.length} pending</Badge>}>
+            <Card className="overflow-hidden">
+              <div className="flex flex-wrap gap-1 border-b bg-muted/30 px-3 py-2">
+                {[
+                  { id: "access", label: "Access Requests", n: accessReqs.length },
+                  { id: "waivers", label: "Fee Waivers", n: waiverReqs.length },
+                  { id: "refunds", label: "Refunds >₹50K", n: refundReqs.length },
+                  { id: "visibility", label: "Cross-Dept", n: visReqs.length },
+                  { id: "scholarship", label: "Scholarship Esc.", n: scholarReqs.length },
+                ].map(t => (
+                  <button key={t.id} onClick={() => setTab(t.id as any)}
+                    className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${tab === t.id ? "bg-lnx-teal-500 text-white" : "text-muted-foreground hover:bg-accent"}`}>
+                    {t.label} <span className="ml-1 rounded bg-black/10 px-1">{t.n}</span>
+                  </button>
+                ))}
+              </div>
+              {tabData.length === 0 ? (
+                <div className="p-8"><EmptyState title="All clear" body="No items in this queue right now." /></div>
+              ) : (
+                <ul className="divide-y">
+                  {tabData.map(req => {
+                    const requestor = users.find(u => u.id === req.requestedBy);
                     return (
-                      <div key={r.id} className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
+                      <li key={req.id} className="flex items-center justify-between gap-3 px-4 py-3">
                         <div className="flex min-w-0 items-center gap-3">
-                          <Avatar firstName={"${target?.firstName} ${target?.lastName}".split(" ")[0]} lastName={"${target?.firstName} ${target?.lastName}".split(" ")[1]} color={target?.avatarColor} size="sm" />
+                          {requestor && <Avatar firstName={requestor.firstName} lastName={requestor.lastName} color={requestor.avatarColor} initials={requestor.initials} size="sm" />}
                           <div className="min-w-0">
-                            <div className="truncate text-sm font-medium text-lnx-navy-800">{target?.firstName} {target?.lastName}</div>
-                            <div className="truncate text-xs text-muted-foreground">{r.change} · {r.reason}</div>
+                            <p className="text-sm font-medium text-lnx-navy-800">{req.change}</p>
+                            <p className="truncate text-xs text-muted-foreground">{requestor?.firstName} {requestor?.lastName} · {req.reason}</p>
+                            <p className="mt-0.5 text-[10px] text-muted-foreground">{formatDistanceToNow(new Date(req.requestedAt), { addSuffix: true })}</p>
                           </div>
                         </div>
-                        <div className="flex shrink-0 gap-1.5">
-                          <Button size="sm" variant="outline" onClick={() => { resolve(r.id, "rejected", "", user!.id); toast.info("Request rejected"); }}>
-                            <XCircle className="mr-1 h-3 w-3" /> Reject
-                          </Button>
-                          <Button size="sm" onClick={() => { resolve(r.id, "approved", "", user!.id); toast.success("Request approved"); }}>
-                            <CheckCircle2 className="mr-1 h-3 w-3" /> Approve
-                          </Button>
+                        <div className="flex flex-shrink-0 gap-1">
+                          <Button size="sm" onClick={() => setConfirmReq(req)} className="h-7 bg-lnx-teal-500 text-xs text-white hover:bg-lnx-teal-500/90">Approve</Button>
+                          <Button size="sm" variant="ghost" onClick={() => setRejectReq(req)} className="h-7 text-xs">Reject</Button>
+                          <Button size="sm" variant="ghost" onClick={() => navigate({ to: "/admin/access-control/requests" })} className="h-7 text-xs">Details</Button>
                         </div>
-                      </div>
+                      </li>
                     );
                   })}
-                </div>}
-          </Card>
-        </Section>
+                </ul>
+              )}
+            </Card>
+          </Section>
 
-        <Section title="Risk Flags">
-          <Card className="space-y-3 p-4">
-            <RiskRow icon={AlertTriangle} tone="red" label="ME Dept attendance below 70%" sub="Action: notify HOD" to="/people/students" />
-            <RiskRow icon={Wallet} tone="amber" label={`${bigDefaulters} defaulters above ₹10L threshold`} sub="Send reminder batch" to="/finance/defaulters" />
-            <RiskRow icon={ShieldCheck} tone={redCriteria.length ? "red" : "green"} label={`${redCriteria.length} NAAC criteria in red`} sub="Open Cockpit" to="/compliance/naac" />
-            <RiskRow icon={Users} tone="amber" label="2 faculty over workload ceiling" sub="Review schedule" to="/people/faculty" />
-          </Card>
+          <Section title="Quick Actions">
+            <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
+              <QuickAction icon={Megaphone} label="Send Announcement" tone="primary" onClick={() => setAnnounceOpen(true)} />
+              <QuickAction icon={UserPlus} label="Add User" href="/admin/access-control/people" />
+              <QuickAction icon={FileBarChart} label="Export Institution Report" onClick={() => setExportOpen(true)} />
+              <QuickAction icon={ScrollText} label="Review Audit Log" href="/admin/audit-log" />
+              <QuickAction icon={Settings} label="Settings" href="/admin/settings" />
+            </div>
+          </Section>
+        </div>
+
+        <Section title="Risk Flags" className="space-y-2">
+          <RiskFlag tone="red" icon={AlertTriangle} title="ME Dept attendance fell to 68% (below threshold)"
+            action={<Button size="sm" variant="outline" className="h-6 text-[11px]" onClick={(e) => { e.stopPropagation(); setAlertDept("ME"); }}>Send alert to HOD Rohan</Button>}
+            onClick={() => navigate({ to: "/academic/attendance" })} />
+          <RiskFlag tone="amber" icon={Wallet} title="₹47L total dues from 23 students (top defaulters)"
+            onClick={() => navigate({ to: "/finance/defaulters" })} />
+          <RiskFlag tone="amber" icon={ShieldCheck} title="NAAC C3 (Research) at 42% — AQAR due in 38 days"
+            onClick={() => navigate({ to: "/compliance/naac" })} />
+          <RiskFlag tone="amber" icon={Users} title="Faculty Dr. Mishra workload 28% over policy"
+            onClick={() => navigate({ to: "/people/faculty" })} />
+          <RiskFlag tone="red" icon={Stamp} title="AICTE EoA submission due in 62 days"
+            onClick={() => navigate({ to: "/compliance/aicte" })} />
         </Section>
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Section title="Admission Funnel">
-          <Card className="p-4">
-            <Funnel rows={[
-              { label: "Inquired", value: 1420, pct: 100 },
-              { label: "Counselled", value: 982, pct: 69 },
-              { label: "Applied", value: 612, pct: 43 },
-              { label: "Documents", value: 487, pct: 34 },
-              { label: "Approved", value: 320, pct: 23 },
-              { label: "Enrolled", value: 287, pct: 20 },
-            ]} />
-          </Card>
-        </Section>
+        <Card className="p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="text-sm font-semibold">Admission Funnel</h3>
+            <Badge variant="outline" className="text-xs">27.6%</Badge>
+          </div>
+          <ul className="space-y-1.5">
+            {[["Inquired",340,100],["Counselled",218,64],["Applied",187,55],["Documents",142,42],["Approved",118,35],["Enrolled",94,28]].map(([l,v,w]) => (
+              <li key={l as string} className="space-y-0.5">
+                <div className="flex justify-between text-[11px]"><span>{l as string}</span><span className="font-medium">{v as number}</span></div>
+                <div className="h-1.5 rounded-full bg-muted overflow-hidden"><div className="h-full rounded-full bg-lnx-teal-500" style={{ width: `${w as number}%` }} /></div>
+              </li>
+            ))}
+          </ul>
+        </Card>
 
-        <Section title="Department Performance">
-          <Card className="p-4">
-            <table className="w-full text-xs">
-              <thead className="text-left text-muted-foreground">
-                <tr><th className="pb-2 font-medium">Dept</th><th className="pb-2 font-medium">Att</th><th className="pb-2 font-medium">Plc</th><th className="pb-2 font-medium">NAAC</th></tr>
-              </thead>
-              <tbody>
-                {[
-                  { d: "CSE", a: "green", p: "green", n: "green" },
-                  { d: "ECE", a: "amber", p: "amber", n: "green" },
-                  { d: "ME", a: "red", p: "amber", n: "amber" },
-                  { d: "CIVIL", a: "green", p: "amber", n: "amber" },
-                  { d: "BIOTECH", a: "amber", p: "red", n: "amber" },
-                ].map(r => (
-                  <tr key={r.d} className="border-t">
-                    <td className="py-2 font-medium text-lnx-navy-800">{r.d}</td>
-                    <td className="py-2"><RagChip tone={r.a as any} /></td>
-                    <td className="py-2"><RagChip tone={r.p as any} /></td>
-                    <td className="py-2"><RagChip tone={r.n as any} /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </Card>
-        </Section>
-
-        <Section title="Compliance Status">
-          <Card className="p-4">
-            <div className="grid grid-cols-2 gap-2">
-              {criteria.map(c => (
-                <Link key={c.id} to="/compliance/naac" className="rounded-lg border p-2 hover:border-lnx-teal-500">
-                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground">C{c.number}</div>
-                  <div className="truncate text-xs font-medium text-lnx-navy-800">{c.name}</div>
-                  <div className="mt-1 flex items-center justify-between">
-                    <Progress value={c.readiness} className="h-1.5 flex-1" />
-                    <span className="ml-2 text-[10px] tabular text-muted-foreground">{c.readiness}%</span>
-                  </div>
-                </Link>
+        <Card className="p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="text-sm font-semibold">Department Performance</h3>
+            <Button variant="ghost" size="sm" className="h-6 text-xs">View all</Button>
+          </div>
+          <table className="w-full text-xs">
+            <thead className="text-[10px] uppercase text-muted-foreground"><tr><th className="text-left pb-1">Dept</th><th className="text-right pb-1">Att%</th><th className="text-right pb-1">Plc%</th><th className="text-right pb-1">Health</th></tr></thead>
+            <tbody>
+              {[["CSE",94,82,"green"],["ECE",90,76,"green"],["ME",68,58,"red"],["CIVIL",87,65,"amber"],["BIOTECH",91,48,"amber"]].map(([d,a,p,h]) => (
+                <tr key={d as string} className="border-t">
+                  <td className="py-1.5 font-medium">{d as string}</td>
+                  <td className="text-right">{a as number}%</td>
+                  <td className="text-right">{p as number}%</td>
+                  <td className="text-right"><span className={`inline-block h-2 w-2 rounded-full ${h === "green" ? "bg-lnx-green-500" : h === "amber" ? "bg-lnx-amber-500" : "bg-lnx-red-500"}`} /></td>
+                </tr>
               ))}
-            </div>
-          </Card>
-        </Section>
+            </tbody>
+          </table>
+        </Card>
+
+        <Card className="p-4">
+          <h3 className="mb-3 text-sm font-semibold">NAAC Criterion Status</h3>
+          <div className="grid grid-cols-4 gap-2">
+            {criteria.map(c => (
+              <Link key={c.id} to="/compliance/naac" className="flex flex-col items-center rounded-md border p-2 hover:bg-accent">
+                <div className={`text-xs font-semibold ${c.status === "green" ? "text-lnx-green-500" : c.status === "amber" ? "text-lnx-amber-500" : "text-lnx-red-500"}`}>{c.readiness}%</div>
+                <div className="text-[9px] text-center mt-0.5">C{c.number}</div>
+              </Link>
+            ))}
+          </div>
+          <Button size="sm" variant="outline" className="mt-3 w-full" onClick={() => setAqarOpen(true)}>
+            <Sparkles className="mr-1 h-3.5 w-3.5" />Generate AQAR Draft
+          </Button>
+        </Card>
       </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Section title="Placement Pulse — 6 months">
-          <Card className="p-4">
-            <BarMini labels={["Jul","Aug","Sep","Oct","Nov","Dec"]} drives={[3,5,4,7,6,8]} offers={[4,8,11,18,15,24]} />
-            <div className="mt-3 flex justify-between text-xs text-muted-foreground">
-              <span><span className="inline-block h-2 w-2 rounded-sm bg-lnx-teal-500" /> Drives</span>
-              <span><span className="inline-block h-2 w-2 rounded-sm bg-lnx-navy-800" /> Offers</span>
-              <span className="tabular">{drives.filter(d => d.status === "active").length} active drives now</span>
-            </div>
-          </Card>
-        </Section>
-
-        <Section title="Recent Activity">
-          <Card className="p-4">
-            <div className="divide-y">
-              {audit.slice(0, 6).map(a => {
-                const actor = users.find(u => u.id === a.actorId);
-                return (
-                  <div key={a.id} className="flex items-center gap-3 py-2 first:pt-0">
-                    <Avatar firstName={actor?.firstName ?? "S"} lastName={actor?.lastName ?? ""} color={actor?.avatarColor} size="sm" />
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-xs text-lnx-navy-800"><strong>{actor?.firstName ?? "System"}</strong> {a.action}</div>
-                      <div className="text-[10px] text-muted-foreground">{a.module} · {formatDistanceToNow(new Date(a.at), { addSuffix: true })}</div>
-                    </div>
+      <Section title="Recent Activity" className="mt-6">
+        <Card className="overflow-hidden">
+          <ul className="divide-y">
+            {audit.slice(0,8).map(a => {
+              const actor = users.find(u => u.id === a.actorId);
+              return (
+                <li key={a.id} className="flex items-center justify-between px-4 py-2.5 text-xs">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Badge variant="outline" className="text-[10px]">{a.module}</Badge>
+                    <span className="truncate"><strong>{actor?.firstName ?? "System"}</strong> · {a.action}</span>
                   </div>
-                );
-              })}
-            </div>
-          </Card>
-        </Section>
-      </div>
-
-      <Section title="Quick Actions" className="mt-6">
-        <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-          <QuickAction icon={GitPullRequest} label="Review Approvals" href="/admin/access-control/requests" tone="primary" />
-          <QuickAction icon={Users} label="View All People" href="/admin/access-control/people" />
-          <QuickAction icon={FileSpreadsheet} label="Export Institution Report" onClick={() => toast.success("PDF generated · Sample-Report.pdf")} />
-          <QuickAction icon={ShieldCheck} label="NAAC Cockpit" href="/compliance/naac" />
-        </div>
+                  <span className="flex-shrink-0 text-[10px] text-muted-foreground">{formatDistanceToNow(new Date(a.at), { addSuffix: true })}</span>
+                </li>
+              );
+            })}
+          </ul>
+          <div className="border-t bg-muted/20 p-2 text-center">
+            <Link to="/admin/audit-log" className="text-xs text-lnx-teal-500 hover:underline">View full audit log →</Link>
+          </div>
+        </Card>
       </Section>
+
+      {/* Dialogs */}
+      <ConfirmDialog
+        open={!!confirmReq} onOpenChange={(v) => !v && setConfirmReq(null)}
+        title={`Approve: ${confirmReq?.change}`}
+        description={`Requestor: ${users.find(u => u.id === confirmReq?.requestedBy)?.firstName ?? ""} ${users.find(u => u.id === confirmReq?.requestedBy)?.lastName ?? ""}`}
+        confirmLabel="Approve" withComment
+        onConfirm={(c) => confirmReq && handleApprove(confirmReq, c)}
+      />
+      <ReasonDialog
+        open={!!rejectReq} onOpenChange={(v) => !v && setRejectReq(null)}
+        title={`Reject: ${rejectReq?.change}`}
+        description="Provide a reason — this will be shared with the requestor."
+        confirmLabel="Reject" tone="danger"
+        onSubmit={(r) => rejectReq && handleReject(rejectReq, r)}
+      />
+      <ProgressDialog open={exportOpen} onOpenChange={setExportOpen}
+        title="Generating Institution Report" description="Compiling PDF across all modules…"
+        durationMs={2800} successText="Report ready — downloading"
+        onComplete={() => toast.success("Institution report downloaded", { description: "institution-report-jun-2026.pdf" })} />
+      <ProgressDialog open={aqarOpen} onOpenChange={setAqarOpen}
+        title="Generating AQAR Draft" description="Pulling data across 7 criteria…"
+        durationMs={3200} successText="AQAR draft generated"
+        onComplete={() => toast.success("AQAR draft ready", { description: "Open Compliance > NAAC to review" })} />
+      <MultiChannelPreviewDialog
+        open={!!alertDept} onOpenChange={(v) => !v && setAlertDept(null)}
+        title="Send alert to HOD"
+        subject={`Attendance below threshold — ${alertDept}`}
+        body={`Dear HOD,\n\nDepartment attendance has fallen to 68%, below the institutional threshold of 75%. Please review section-wise data and submit an action plan within 7 days.\n\nRegards,\nDirector's Office`}
+        recipients={[{ id: "u_hod_me", name: "Prof. Rohan Pandey (HOD ME)" }]}
+        defaultChannels={["email", "whatsapp"]}
+        onSend={(ch) => { sendDeptAlertCascade("ME", "Attendance below threshold — action plan required", user!.id); toast.success("Alert sent", { description: `Via ${ch.join(", ")}` }); }}
+      />
+      <MultiChannelPreviewDialog
+        open={announceOpen} onOpenChange={setAnnounceOpen}
+        title="Institution-wide Announcement"
+        subject="Important Notice from the Director's Office"
+        body={`Dear Bharat Institute community,\n\nThis is an important update from the Director's Office.\n\nRegards,\nDr. Rajeshwari Krishnan\nDirector`}
+        recipients={users.slice(0, 80).map(u => ({ id: u.id, name: `${u.firstName} ${u.lastName}` }))}
+        defaultChannels={["email", "sms"]}
+        onSend={(ch) => toast.success(`Announcement queued`, { description: `${users.length} recipients · ${ch.join(", ")}` })}
+      />
     </>
   );
 }
 
 // ════════════════════════════════════════════════════════════════════════
-// REGISTRAR — pipelines & documents
+// REGISTRAR — Workflow inbox
 // ════════════════════════════════════════════════════════════════════════
 function RegistrarDashboard() {
   const { user } = useAccess();
   const users = useUsersStore(s => s.users);
   const students = users.filter(u => u.role === "student");
-  const sample = students.slice(0, 5);
+  const navigate = useNavigate();
 
-  const verify = (name: string) => toast.success(`DigiLocker fetched · ${name} verified`);
-  const generate = (name: string, type: string) => toast.success(`${type} generated for ${name} · sample.pdf`);
+  // Mock queues
+  const [docQueue, setDocQueue] = useState(students.slice(0, 6).map((s, i) => ({
+    id: `dq_${s.id}`, student: s,
+    missing: ["10th Marksheet", "12th Marksheet", "Aadhaar", "Caste Cert"].slice(0, 1 + (i % 3)),
+    apaar: i % 3 !== 0,
+    daysWaiting: 1 + (i % 5),
+  })));
+  const [certQueue, setCertQueue] = useState(students.slice(6, 12).map((s, i) => ({
+    id: `cq_${s.id}`, student: s,
+    type: ["Bonafide Certificate","Transfer Certificate","Character Certificate","Internship NOC","Bonafide Certificate","Transfer Certificate"][i],
+    reason: ["Passport application","Higher studies","Scholarship","Internship","Visa","College transfer"][i],
+    feePaid: i % 2 === 0,
+    daysWaiting: 1 + i,
+  })));
+  const [scholarQueue, setScholarQueue] = useState(students.slice(0, 4).map((s, i) => ({
+    id: `sq_${s.id}`, student: s,
+    scheme: ["NSP Post-Matric","State Merit","SC/ST Welfare","Minority Scholarship"][i],
+    income: ["1.8L","2.4L","1.2L","2.0L"][i],
+    category: ["OBC","General-EWS","SC","Minority"][i],
+    daysWaiting: 2 + i,
+  })));
+  const [admissionQueue, setAdmissionQueue] = useState([
+    { id: "ad1", name: "Arjun Mehta", program: "B.Tech CSE", docsOk: true, feePaid: true, rank: 423 },
+    { id: "ad2", name: "Priyanka Reddy", program: "B.Tech ECE", docsOk: true, feePaid: true, rank: 612 },
+    { id: "ad3", name: "Karan Singh", program: "B.Tech ME", docsOk: true, feePaid: false, rank: 891 },
+  ]);
+
+  const [digiOpen, setDigiOpen] = useState<{ studentId: string; name: string } | null>(null);
+  const [certPreview, setCertPreview] = useState<{ id: string; name: string; type: string } | null>(null);
+  const [confirmScholar, setConfirmScholar] = useState<typeof scholarQueue[0] | null>(null);
+  const [confirmAdmit, setConfirmAdmit] = useState<typeof admissionQueue[0] | null>(null);
+  const [rejectScholar, setRejectScholar] = useState<typeof scholarQueue[0] | null>(null);
+  const [nspOpen, setNspOpen] = useState(false);
+  const [requestMsg, setRequestMsg] = useState<{ id: string; name: string } | null>(null);
 
   return (
     <>
       <DashboardHero user={user!} kpis={
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          <KpiCard label="New Inquiries Today" value={14} icon={MessageSquare} delta={{ value: "+3 vs yest", up: true }} />
-          <KpiCard label="Applications in Progress" value={87} icon={ScrollText} />
-          <KpiCard label="Docs Pending Verification" value={23} icon={FileText} tone="amber" />
-          <KpiCard label="Certificate Requests" value={11} icon={BadgeCheck} tone="teal" />
+          <KpiCard label="New Inquiries Today" value="12" icon={Bell} delta={{ value: "+3", up: true }} />
+          <KpiCard label="Applications in Progress" value="48" icon={ClipboardList} tone="teal" />
+          <KpiCard label="Documents to Verify" value={docQueue.length} icon={FileCheck} tone="amber" />
+          <KpiCard label="Cert Requests Pending" value={certQueue.length} icon={FileText} />
         </div>
       } />
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Section title="Document Verification Queue">
-          <Card className="p-0">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/40 text-xs text-muted-foreground">
-                <tr><th className="px-3 py-2 text-left">Student</th><th className="px-3 py-2 text-left">Missing</th><th className="px-3 py-2"></th></tr>
-              </thead>
-              <tbody>
-                {sample.map(s => (
-                  <tr key={s.id} className="border-t">
-                    <td className="px-3 py-2"><div className="text-sm font-medium text-lnx-navy-800">{s.firstName} {s.lastName}</div><div className="text-[11px] text-muted-foreground">{s.rollNo}</div></td>
-                    <td className="px-3 py-2 text-xs text-muted-foreground">10th MS, Aadhaar</td>
-                    <td className="px-3 py-2 text-right"><Button size="sm" variant="outline" onClick={() => verify(s.firstName)}>Verify · DigiLocker</Button></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </Card>
-        </Section>
+      <div className="space-y-4">
+        <ActionQueueCard
+          title="Documents to verify" count={docQueue.length} badgeTone="amber"
+          emptyText="No pending document verifications"
+          rows={docQueue}
+          renderRow={(r) => (
+            <div className="flex items-center gap-3">
+              <Avatar firstName={r.student.firstName} lastName={r.student.lastName} color={r.student.avatarColor} initials={r.student.initials} size="sm" />
+              <div className="min-w-0">
+                <p className="text-sm font-medium">{r.student.firstName} {r.student.lastName}</p>
+                <p className="text-xs text-muted-foreground">{r.student.rollNo ?? r.student.id}</p>
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {r.missing.map(m => <Badge key={m} variant="outline" className="h-4 text-[10px]">{m}</Badge>)}
+                  {!r.apaar && <Badge variant="outline" className="h-4 border-lnx-amber-500/40 text-[10px] text-lnx-amber-500">No APAAR</Badge>}
+                  <span className="text-[10px] text-muted-foreground">· {r.daysWaiting}d waiting</span>
+                </div>
+              </div>
+            </div>
+          )}
+          actions={[
+            { label: "Verify with DigiLocker", tone: "primary", icon: ShieldCheck, onClick: (r) => setDigiOpen({ studentId: r.student.id, name: `${r.student.firstName} ${r.student.lastName}` }) },
+            { label: "Manual Upload", icon: Upload, onClick: (r) => {
+              verifyDocumentsCascade(r.student.id, "Manual", user!.id);
+              setDocQueue(q => q.filter(x => x.id !== r.id));
+              toast.success(`Documents verified manually for ${r.student.firstName}`);
+            }},
+            { label: "Request from Student", icon: MessageSquare, onClick: (r) => setRequestMsg({ id: r.id, name: `${r.student.firstName} ${r.student.lastName}` }) },
+          ]}
+        />
 
-        <Section title="Certificate Request Queue">
-          <Card className="p-0">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/40 text-xs text-muted-foreground">
-                <tr><th className="px-3 py-2 text-left">Student</th><th className="px-3 py-2 text-left">Type</th><th className="px-3 py-2"></th></tr>
-              </thead>
-              <tbody>
-                {[
-                  { s: sample[0], t: "Bonafide" },
-                  { s: sample[1], t: "Transfer Certificate" },
-                  { s: sample[2], t: "Character Certificate" },
-                  { s: sample[3], t: "NOC" },
-                ].filter(x => x.s).map(({ s, t }) => (
-                  <tr key={s!.id + t} className="border-t">
-                    <td className="px-3 py-2 text-sm font-medium text-lnx-navy-800">{s!.firstName} {s!.lastName}</td>
-                    <td className="px-3 py-2 text-xs">{t}</td>
-                    <td className="px-3 py-2 text-right"><Button size="sm" onClick={() => generate(s!.firstName, t)}>Generate</Button></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </Card>
+        <ActionQueueCard
+          title="Certificate requests" count={certQueue.length} badgeTone="amber"
+          emptyText="No pending certificate requests"
+          rows={certQueue}
+          renderRow={(r) => (
+            <div className="flex items-center gap-3">
+              <Avatar firstName={r.student.firstName} lastName={r.student.lastName} color={r.student.avatarColor} initials={r.student.initials} size="sm" />
+              <div className="min-w-0">
+                <p className="text-sm font-medium">{r.student.firstName} {r.student.lastName} <span className="ml-1 text-xs font-normal text-muted-foreground">· {r.type}</span></p>
+                <p className="text-xs text-muted-foreground">{r.reason} · {r.feePaid ? <span className="text-lnx-green-500">Fee paid</span> : <span className="text-lnx-amber-500">Fee due</span>} · {r.daysWaiting}d</p>
+              </div>
+            </div>
+          )}
+          actions={[
+            { label: "Generate", tone: "primary", icon: FilePlus, onClick: (r) => setCertPreview({ id: r.id, name: `${r.student.firstName} ${r.student.lastName}`, type: r.type }) },
+            { label: "Reject", tone: "danger", onClick: (r) => { setCertQueue(q => q.filter(x => x.id !== r.id)); toast(`Rejected — ${r.type}`); } },
+          ]}
+        />
+
+        <ActionQueueCard
+          title="Scholarship applications" count={scholarQueue.length}
+          emptyText="No scholarship applications pending"
+          rows={scholarQueue}
+          renderRow={(r) => (
+            <div className="flex items-center gap-3">
+              <Avatar firstName={r.student.firstName} lastName={r.student.lastName} color={r.student.avatarColor} initials={r.student.initials} size="sm" />
+              <div>
+                <p className="text-sm font-medium">{r.student.firstName} {r.student.lastName} <span className="ml-1 text-xs font-normal text-muted-foreground">· {r.scheme}</span></p>
+                <p className="text-xs text-muted-foreground">Income ₹{r.income} · {r.category} · {r.daysWaiting}d waiting</p>
+              </div>
+            </div>
+          )}
+          actions={[
+            { label: "Approve", tone: "primary", onClick: (r) => setConfirmScholar(r) },
+            { label: "Decline", tone: "danger", onClick: (r) => setRejectScholar(r) },
+          ]}
+        />
+
+        <ActionQueueCard
+          title="Admissions awaiting final approval" count={admissionQueue.length} badgeTone="amber"
+          emptyText="No admissions awaiting final approval"
+          rows={admissionQueue}
+          renderRow={(r) => (
+            <div>
+              <p className="text-sm font-medium">{r.name} <span className="ml-1 text-xs font-normal text-muted-foreground">· {r.program}</span></p>
+              <p className="text-xs text-muted-foreground">Merit rank #{r.rank} · {r.docsOk ? <span className="text-lnx-green-500">Docs ✓</span> : "Docs ✗"} · {r.feePaid ? <span className="text-lnx-green-500">Fee ✓</span> : <span className="text-lnx-amber-500">Fee pending</span>}</p>
+            </div>
+          )}
+          actions={[
+            { label: "Approve & Enrol", tone: "primary", icon: CheckCircle2, onClick: (r) => setConfirmAdmit(r) },
+            { label: "Reject", tone: "danger", onClick: (r) => { setAdmissionQueue(q => q.filter(x => x.id !== r.id)); toast(`${r.name} application rejected`); } },
+          ]}
+        />
+
+        <Section title="Quick Actions">
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
+            <QuickAction icon={UserPlus} label="+ Add Inquiry" tone="primary" onClick={() => toast.success("Inquiry drawer opened (demo)")} />
+            <QuickAction icon={FilePlus} label="+ Manual Application" onClick={() => toast.success("Application drawer opened (demo)")} />
+            <QuickAction icon={ShieldCheck} label="Bulk Document Verify" onClick={() => toast.success("Bulk verify started for 12 students")} />
+            <QuickAction icon={RefreshCw} label="NSP Sync" onClick={() => setNspOpen(true)} />
+            <QuickAction icon={Megaphone} label="Send Announcement" href="/communication/announcements" />
+          </div>
         </Section>
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Section title="Scholarship Verification Queue">
-          <Card className="p-4">
-            {[{ s: sample[0], k: "Merit Scholarship" }, { s: sample[1], k: "NSP — National" }].filter(x => x.s).map(({ s, k }, i) => (
-              <div key={i} className="flex items-center justify-between border-t py-2 first:border-0 first:pt-0">
-                <div><div className="text-sm font-medium text-lnx-navy-800">{s!.firstName} {s!.lastName}</div><div className="text-xs text-muted-foreground">{k}</div></div>
-                <div className="flex gap-1.5">
-                  <Button size="sm" variant="outline" onClick={() => toast.info("Declined")}>Decline</Button>
-                  <Button size="sm" onClick={() => toast.success("Approved · routed to Finance")}>Approve</Button>
-                </div>
-              </div>
-            ))}
-          </Card>
-        </Section>
-
-        <Section title="Admission Funnel by Program">
-          <Card className="p-4 space-y-3">
-            {[
-              { p: "B.Tech CSE", applied: 412, enrolled: 80, conv: 19 },
-              { p: "B.Tech ECE", applied: 318, enrolled: 60, conv: 19 },
-              { p: "B.Tech ME", applied: 240, enrolled: 50, conv: 21 },
-              { p: "MBA", applied: 198, enrolled: 40, conv: 20 },
-            ].map(r => (
-              <div key={r.p}>
-                <div className="flex justify-between text-xs">
-                  <span className="font-medium text-lnx-navy-800">{r.p}</span>
-                  <span className="text-muted-foreground tabular">{r.enrolled} / {r.applied} · {r.conv}%</span>
-                </div>
-                <Progress value={r.conv * 4} className="mt-1 h-2" />
-              </div>
-            ))}
-          </Card>
-        </Section>
-      </div>
-
-      <Section title="Quick Actions" className="mt-6">
-        <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-          <QuickAction icon={Plus} label="Add Inquiry" onClick={() => toast.success("Inquiry form opened")} tone="primary" />
-          <QuickAction icon={Plus} label="Add Application" onClick={() => toast.success("New application started")} />
-          <QuickAction icon={FileText} label="Bulk Document Verify" onClick={() => toast.info("Bulk DigiLocker batch started · 23 students")} />
-          <QuickAction icon={Send} label="NSP Sync" onClick={() => toast.success("NSP scholarship data synced")} />
-        </div>
-      </Section>
+      <DigiLockerDialog open={!!digiOpen} onOpenChange={(v) => !v && setDigiOpen(null)}
+        studentName={digiOpen?.name ?? ""}
+        onVerified={() => {
+          if (!digiOpen) return;
+          verifyDocumentsCascade(digiOpen.studentId, "DigiLocker", user!.id);
+          setDocQueue(q => q.filter(x => x.student.id !== digiOpen.studentId));
+          toast.success(`DigiLocker fetch complete for ${digiOpen.name}`);
+        }} />
+      <PdfPreviewDialog
+        open={!!certPreview} onOpenChange={(v) => !v && setCertPreview(null)}
+        title="Issue Certificate" docType={certPreview?.type ?? ""} recipient={certPreview?.name ?? ""}
+        fields={[{ label: "Issue Date", value: format(new Date(), "dd MMM yyyy") }, { label: "Validity", value: "6 months" }]}
+        onConfirm={() => {
+          if (!certPreview) return;
+          const student = certQueue.find(c => c.id === certPreview.id)?.student;
+          if (student) issueCertificateCascade(student.id, certPreview.type, user!.id);
+          setCertQueue(q => q.filter(x => x.id !== certPreview.id));
+          toast.success(`${certPreview.type} issued to ${certPreview.name}`);
+        }}
+      />
+      <ConfirmDialog open={!!confirmScholar} onOpenChange={(v) => !v && setConfirmScholar(null)}
+        title={`Approve scholarship: ${confirmScholar?.scheme}`}
+        description={`${confirmScholar?.student.firstName} ${confirmScholar?.student.lastName} · Income ₹${confirmScholar?.income}`}
+        confirmLabel="Approve & Send to Finance" withComment
+        onConfirm={(c) => {
+          if (!confirmScholar) return;
+          verifyScholarshipCascade(confirmScholar.student.id, confirmScholar.scheme, user!.id);
+          setScholarQueue(q => q.filter(x => x.id !== confirmScholar.id));
+          toast.success(`Scholarship verified · sent to Finance Head's queue`);
+        }} />
+      <ReasonDialog open={!!rejectScholar} onOpenChange={(v) => !v && setRejectScholar(null)}
+        title="Decline scholarship application" description="Reason will be sent to student"
+        confirmLabel="Decline"
+        onSubmit={(r) => { if (!rejectScholar) return; setScholarQueue(q => q.filter(x => x.id !== rejectScholar.id)); toast(`Declined — ${rejectScholar.scheme}`, { description: r }); }} />
+      <ConfirmDialog open={!!confirmAdmit} onOpenChange={(v) => !v && setConfirmAdmit(null)}
+        title={`Approve & Enrol: ${confirmAdmit?.name}`}
+        description={`${confirmAdmit?.program} · Roll no will be allocated automatically`}
+        confirmLabel="Enrol Student" withComment
+        onConfirm={() => {
+          if (!confirmAdmit) return;
+          approveAdmissionCascade(confirmAdmit.name, confirmAdmit.program, user!.id);
+          setAdmissionQueue(q => q.filter(x => x.id !== confirmAdmit.id));
+          toast.success(`${confirmAdmit.name} enrolled in ${confirmAdmit.program}`, { description: "Welcome email queued · HOD notified" });
+        }} />
+      <ProgressDialog open={nspOpen} onOpenChange={setNspOpen}
+        title="NSP Sync" description="Pushing verified scholarships to National Scholarship Portal…"
+        durationMs={2400} successText="9 records synced · 0 errors"
+        onComplete={() => toast.success("NSP sync complete", { description: "9 students pushed" })} />
+      <MultiChannelPreviewDialog
+        open={!!requestMsg} onOpenChange={(v) => !v && setRequestMsg(null)}
+        title="Request documents from student"
+        subject="Please upload pending documents"
+        body={`Dear student,\n\nThe Registrar's office requires the following documents to complete your file. Please upload them via your student portal within 5 working days.\n\nRegards,\nRegistrar — Bharat Institute`}
+        recipients={requestMsg ? [{ id: requestMsg.id, name: requestMsg.name }] : []}
+        defaultChannels={["email","sms"]}
+        onSend={(ch) => toast.success(`Document request sent`, { description: `Via ${ch.join(", ")}` })}
+      />
     </>
   );
 }
 
 // ════════════════════════════════════════════════════════════════════════
-// TPO HEAD — placement pipeline
+// TPO HEAD — Sales CRM
 // ════════════════════════════════════════════════════════════════════════
 function TpoDashboard() {
   const { user } = useAccess();
   const drives = usePlacementStore(s => s.drives);
   const companies = usePlacementStore(s => s.companies);
   const ai = usePlacementStore(s => s.ai);
-  const mcq = usePlacementStore(s => s.mcq);
   const offers = usePlacementStore(s => s.offers);
   const users = useUsersStore(s => s.users);
-  const eligibleStudents = users.filter(u => u.role === "student" && (u.cgpa ?? 0) >= 6.5).length;
-  const placedYtd = offers.length;
-  const placedPct = Math.round((placedYtd / Math.max(eligibleStudents, 1)) * 100 * 25); // demo
-  const avgPkg = "₹8.4 LPA";
-  const mcqCompletion = Math.round((mcq.length / 30) * 100);
+  const students = users.filter(u => u.role === "student");
+  const navigate = useNavigate();
+
+  const activeDrives = drives.filter(d => d.status === "active" || d.status === "upcoming").slice(0, 4);
+  const [reviewQueue, setReviewQueue] = useState(ai.slice(0, 6).map((a, i) => ({
+    ...a, id: a.id || `air_${i}`, daysWaiting: 1 + (i % 4),
+    studentObj: students.find(s => s.id === a.studentId) ?? students[i],
+    driveObj: drives.find(d => d.id === a.driveId) ?? drives[0],
+  })));
+  const [inactiveStudents, setInactiveStudents] = useState(students.slice(0, 6).map((s, i) => ({
+    id: `in_${s.id}`, student: s, branch: s.department ?? "CSE",
+    lastActivity: `${7 + i} days ago`,
+    profile: ["SDE","Data Analyst","Frontend Dev","Business Analyst","Product","DevOps"][i % 6],
+  })));
+
+  const [reminderDrive, setReminderDrive] = useState<typeof activeDrives[0] | null>(null);
+  const [cancelDrive, setCancelDrive] = useState<typeof activeDrives[0] | null>(null);
+  const [reviewItem, setReviewItem] = useState<typeof reviewQueue[0] | null>(null);
+  const [nudgeStudent, setNudgeStudent] = useState<typeof inactiveStudents[0] | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [mcqGenOpen, setMcqGenOpen] = useState(false);
 
   return (
     <>
       <DashboardHero user={user!} kpis={
         <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-          <KpiCard label="Active Drives" value={drives.filter(d => d.status === "active").length} icon={Briefcase} tone="teal" />
-          <KpiCard label="Companies Engaged YTD" value={companies.length} icon={Building2} />
-          <KpiCard label="Placed YTD" value={`${placedYtd} (${Math.min(placedPct, 76)}%)`} icon={BadgeCheck} tone="green" />
-          <KpiCard label="Avg Package" value={avgPkg} icon={TrendingUp} delta={{ value: "↑ ₹1.2L", up: true }} />
-          <KpiCard label="AI Test Completion" value={`${mcqCompletion}%`} icon={Bot} tone={mcqCompletion > 70 ? "green" : "amber"} />
+          <Link to="/placement/drives"><KpiCard label="Active Drives" value={activeDrives.length} icon={Briefcase} tone="teal" /></Link>
+          <Link to="/placement/companies"><KpiCard label="Companies YTD" value={companies.length} icon={Building2} /></Link>
+          <Link to="/placement/offers"><KpiCard label="Placed YTD" value={offers.filter(o => o.status === "accepted").length} icon={BadgeCheck} delta={{ value: "+18% vs LY", up: true }} /></Link>
+          <KpiCard label="Avg Package" value="₹7.2 LPA" icon={TrendingUp} tone="amber" />
+          <KpiCard label="AI Test Completion" value="62%" icon={Bot} />
         </div>
       } />
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Section title="Drives This Week" action={<Link to="/placement/drives" className="text-xs font-medium text-lnx-teal-500 hover:underline">All drives</Link>}>
-          <Card className="p-4 space-y-3">
-            {drives.slice(0, 4).map(d => {
-              const c = companies.find(x => x.id === d.companyId);
-              return (
-                <div key={d.id} className="flex items-center justify-between gap-3 rounded-lg border p-3">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-lnx-navy-800 text-xs font-semibold text-white">{c?.name.slice(0, 2).toUpperCase()}</div>
-                    <div className="min-w-0">
-                      <div className="truncate text-sm font-medium text-lnx-navy-800">{c?.name} · {d.role}</div>
-                      <div className="text-xs text-muted-foreground">{d.package} · {d.appliedIds.length} applied · {d.branches.join(", ")}</div>
-                    </div>
+      <Section title="Drives This Week" action={<Button size="sm" onClick={() => setCreateOpen(true)} className="bg-lnx-teal-500 text-white hover:bg-lnx-teal-500/90"><Plus className="mr-1 h-3.5 w-3.5" />Create Drive</Button>}>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          {activeDrives.map(d => {
+            const co = companies.find(c => c.id === d.companyId);
+            return (
+              <Card key={d.id} className="p-4">
+                <div className="mb-3 flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-lnx-navy-800">{co?.name ?? "Company"}</p>
+                    <p className="text-xs text-muted-foreground">{d.role} · {d.package}</p>
+                    <p className="text-[10px] text-muted-foreground">{format(new Date(d.startDate), "dd MMM")} – {format(new Date(d.endDate), "dd MMM")}</p>
                   </div>
-                  <Button size="sm" variant="outline" asChild><Link to="/placement/drives/$id" params={{ id: d.id }}>Manage</Link></Button>
+                  <Badge variant="outline" className={d.status === "active" ? "border-lnx-teal-500/30 text-lnx-teal-500" : "border-lnx-amber-500/30 text-lnx-amber-500"}>
+                    {d.status}
+                  </Badge>
                 </div>
-              );
-            })}
-          </Card>
-        </Section>
-
-        <Section title="Pending AI Interview Reviews">
-          <Card className="p-0">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/40 text-xs text-muted-foreground">
-                <tr><th className="px-3 py-2 text-left">Student</th><th className="px-3 py-2 text-left">Score</th><th className="px-3 py-2"></th></tr>
-              </thead>
-              <tbody>
-                {ai.slice(0, 5).map(a => {
-                  const s = users.find(u => u.id === a.studentId);
-                  return (
-                    <tr key={a.id} className="border-t">
-                      <td className="px-3 py-2"><div className="text-sm font-medium text-lnx-navy-800">{s?.firstName} {s?.lastName}</div><div className="text-[11px] text-muted-foreground">{s?.rollNo}</div></td>
-                      <td className="px-3 py-2"><Badge variant={a.score >= 75 ? "default" : "outline"} className="tabular">{a.score}/100</Badge></td>
-                      <td className="px-3 py-2 text-right"><Button size="sm" variant="outline" onClick={() => toast.info("Recording opened in player")}>Review</Button></td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </Card>
-        </Section>
-      </div>
-
-      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Section title="Branch-wise Performance" className="lg:col-span-2">
-          <Card className="grid grid-cols-2 gap-4 p-4 md:grid-cols-4">
-            {[
-              { l: "MCQ Attempted", v: 84, t: "green" },
-              { l: "AI Interview Attempted", v: 62, t: "amber" },
-              { l: "Avg MCQ", v: 71, t: "green" },
-              { l: "Avg AI Score", v: 68, t: "amber" },
-            ].map(p => (
-              <div key={p.l} className="text-center">
-                <DonutMini value={p.v} tone={p.t as any} />
-                <div className="mt-2 text-[11px] text-muted-foreground">{p.l}</div>
-              </div>
-            ))}
-          </Card>
-        </Section>
-
-        <Section title="Top Performers">
-          <Card className="p-4 space-y-2">
-            {mcq.slice(0, 5).sort((a, b) => b.score - a.score).map((m, i) => {
-              const s = users.find(u => u.id === m.studentId);
-              return (
-                <div key={m.id} className="flex items-center gap-3">
-                  <div className="w-5 text-center text-xs font-bold text-lnx-navy-800">#{i + 1}</div>
-                  <Avatar firstName={"${s?.firstName} ${s?.lastName}".split(" ")[0]} lastName={"${s?.firstName} ${s?.lastName}".split(" ")[1]} color={s?.avatarColor} size="sm" />
-                  <div className="min-w-0 flex-1 text-xs"><div className="truncate font-medium text-lnx-navy-800">{s?.firstName} {s?.lastName}</div><div className="text-muted-foreground">CGPA {s?.cgpa}</div></div>
-                  <Badge className="tabular">{m.score}/{m.total}</Badge>
+                <div className="mb-3 grid grid-cols-5 gap-2 text-center text-xs">
+                  {[["Elig",87],["App",d.appliedIds.length || 62],["Tested",48],["Short",d.shortlistedIds.length || 23],["Off",d.selectedIds.length]].map(([l,v]) => (
+                    <div key={l as string}><div className="text-sm font-semibold">{v}</div><div className="text-[10px] text-muted-foreground">{l as string}</div></div>
+                  ))}
                 </div>
-              );
-            })}
-          </Card>
-        </Section>
-      </div>
-
-      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Section title="Drive Funnel — Razorpay SDE">
-          <Card className="p-4">
-            <Funnel rows={[
-              { label: "Eligible", value: 28, pct: 100 },
-              { label: "Applied", value: 18, pct: 64 },
-              { label: "MCQ Cleared", value: 11, pct: 39 },
-              { label: "AI Cleared", value: 6, pct: 21 },
-              { label: "Offered", value: 2, pct: 7 },
-              { label: "Joined", value: 1, pct: 4 },
-            ]} />
-          </Card>
-        </Section>
-
-        <Section title="Recent Offers">
-          <Card className="p-0">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/40 text-xs text-muted-foreground"><tr><th className="px-3 py-2 text-left">Student</th><th className="px-3 py-2 text-left">Company</th><th className="px-3 py-2 text-left">Package</th><th className="px-3 py-2 text-left">Status</th></tr></thead>
-              <tbody>
-                {offers.map(o => {
-                  const s = users.find(u => u.id === o.studentId);
-                  const c = companies.find(x => x.id === o.companyId);
-                  return (
-                    <tr key={o.id} className="border-t">
-                      <td className="px-3 py-2 text-sm font-medium text-lnx-navy-800">{s?.firstName} {s?.lastName}</td>
-                      <td className="px-3 py-2 text-xs">{c?.name}</td>
-                      <td className="px-3 py-2 text-xs tabular">{o.package}</td>
-                      <td className="px-3 py-2"><Badge variant={o.status === "accepted" ? "default" : "outline"}>{o.status}</Badge></td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </Card>
-        </Section>
-      </div>
-
-      <Section title="Quick Actions" className="mt-6">
-        <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-          <QuickAction icon={Plus} label="Create Drive" href="/placement/drives" tone="primary" />
-          <QuickAction icon={Building2} label="Add Company" href="/placement/companies" />
-          <QuickAction icon={Bot} label="Generate MCQs from JD" href="/placement/ai-assessments" />
-          <QuickAction icon={MonitorPlay} label="Configure AI Interview" href="/placement/ai-interviews" />
+                <div className="flex flex-wrap gap-1.5">
+                  <Button size="sm" onClick={() => navigate({ to: `/placement/drives/${d.id}` })} className="h-7 bg-lnx-teal-500 text-xs text-white hover:bg-lnx-teal-500/90">Manage</Button>
+                  <Button size="sm" variant="outline" onClick={() => setReminderDrive(d)} className="h-7 text-xs"><Send className="mr-1 h-3 w-3" />Send Reminder</Button>
+                  {d.selectedIds.length === 0 && <Button size="sm" variant="ghost" onClick={() => setCancelDrive(d)} className="h-7 text-xs text-lnx-red-500">Cancel</Button>}
+                </div>
+              </Card>
+            );
+          })}
         </div>
       </Section>
+
+      <div className="mt-4 space-y-4">
+        <ActionQueueCard
+          title="Pending AI interview reviews" count={reviewQueue.length} badgeTone="amber"
+          emptyText="All AI interviews reviewed"
+          rows={reviewQueue}
+          renderRow={(r) => (
+            <div className="flex items-center gap-3">
+              {r.studentObj && <Avatar firstName={r.studentObj.firstName} lastName={r.studentObj.lastName} color={r.studentObj.avatarColor} initials={r.studentObj.initials} size="sm" />}
+              <div>
+                <p className="text-sm font-medium">{r.studentObj?.firstName} {r.studentObj?.lastName}</p>
+                <p className="text-xs text-muted-foreground">Auto score: <strong>{r.score}/100</strong> · {r.durationMins}m · {r.language} · {r.daysWaiting}d waiting</p>
+              </div>
+            </div>
+          )}
+          actions={[
+            { label: "Review Recording", tone: "primary", icon: Eye, onClick: (r) => setReviewItem(r) },
+            { label: "Approve Score", onClick: (r) => { reviewAiInterviewCascade(r.studentId, r.score, user!.id); setReviewQueue(q => q.filter(x => x.id !== r.id)); toast.success("Score approved · added to leaderboard"); } },
+          ]}
+        />
+
+        <ActionQueueCard
+          title="Students inactive 7+ days" count={inactiveStudents.length}
+          emptyText="All students active"
+          rows={inactiveStudents}
+          renderRow={(r) => (
+            <div className="flex items-center gap-3">
+              <Avatar firstName={r.student.firstName} lastName={r.student.lastName} color={r.student.avatarColor} initials={r.student.initials} size="sm" />
+              <div>
+                <p className="text-sm font-medium">{r.student.firstName} {r.student.lastName} <span className="ml-1 text-xs font-normal text-muted-foreground">· {r.branch}</span></p>
+                <p className="text-xs text-muted-foreground">Last active {r.lastActivity} · Profile: {r.profile}</p>
+              </div>
+            </div>
+          )}
+          actions={[
+            { label: "Send Nudge", tone: "primary", icon: Send, onClick: (r) => setNudgeStudent(r) },
+            { label: "Reassign Profile", onClick: (r) => { toast.success(`${r.student.firstName} reassigned to ${["SDE","Data Analyst","Product"][Math.floor(Math.random()*3)]}`); } },
+          ]}
+        />
+
+        <Section title="Quick Actions">
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
+            <QuickAction icon={Plus} label="+ Create Drive" tone="primary" onClick={() => setCreateOpen(true)} />
+            <QuickAction icon={Building2} label="+ Add Company" onClick={() => toast.success("Add Company drawer (demo)")} />
+            <QuickAction icon={Sparkles} label="Generate MCQs from JD" onClick={() => setMcqGenOpen(true)} />
+            <QuickAction icon={Bot} label="Configure AI Interview" href="/placement/ai-interviews" />
+            <QuickAction icon={Megaphone} label="Send Drive Announcement" href="/communication/announcements" />
+          </div>
+        </Section>
+      </div>
+
+      <MultiChannelPreviewDialog
+        open={!!reminderDrive} onOpenChange={(v) => !v && setReminderDrive(null)}
+        title={`Reminder: ${companies.find(c => c.id === reminderDrive?.companyId)?.name ?? "Drive"}`}
+        subject={`Last chance to apply — ${companies.find(c => c.id === reminderDrive?.companyId)?.name ?? ""}`}
+        body={`Dear student,\n\nThis is a reminder that the ${reminderDrive?.role} drive at ${companies.find(c => c.id === reminderDrive?.companyId)?.name} closes soon. Apply now via the placement portal.\n\nRegards,\nTPO`}
+        recipients={students.slice(0, 25).map(s => ({ id: s.id, name: `${s.firstName} ${s.lastName}` }))}
+        defaultChannels={["whatsapp","sms","email"]}
+        onSend={(ch) => { reminderDrive && sendDriveReminderCascade(reminderDrive.id, ch, user!.id); toast.success(`Drive reminder sent to 25 students`, { description: `Via ${ch.join(", ")}` }); }}
+      />
+      <ReasonDialog
+        open={!!cancelDrive} onOpenChange={(v) => !v && setCancelDrive(null)}
+        title="Cancel drive" description="Reason will be sent to all applicants."
+        confirmLabel="Cancel Drive" tone="danger"
+        onSubmit={(r) => { toast(`Drive cancelled`, { description: r }); setCancelDrive(null); }}
+      />
+      <Dialog open={!!reviewItem} onOpenChange={(v) => !v && setReviewItem(null)}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>AI Interview Review — {reviewItem?.studentObj?.firstName} {reviewItem?.studentObj?.lastName}</DialogTitle>
+            <DialogDescription>Auto score: {reviewItem?.score}/100 · {reviewItem?.durationMins} mins · {reviewItem?.language}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded-lg border bg-muted/30 p-3">
+              <div className="flex items-center gap-3">
+                <div className="flex-1">
+                  <div className="mb-1 flex items-center justify-between text-xs"><span>Recording (mock)</span><span className="text-muted-foreground">12:34 / {reviewItem?.durationMins}:00</span></div>
+                  <div className="h-1.5 rounded-full bg-muted overflow-hidden"><div className="h-full w-1/3 bg-lnx-teal-500 rounded-full" /></div>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-2">
+              {[
+                ["Q1: Tell me about yourself", 78],
+                ["Q2: STAR story — challenge", 65],
+                ["Q3: Technical: SQL joins", 82],
+                ["Q4: Behavioural: conflict", 71],
+                ["Q5: Why this company?", 88],
+              ].map(([q, s]) => (
+                <div key={q as string} className="flex items-center justify-between rounded-md border p-2 text-xs">
+                  <span className="truncate">{q as string}</span>
+                  <div className="flex items-center gap-2">
+                    <Input type="number" defaultValue={s as number} className="h-7 w-16 text-xs" min={0} max={100} />
+                    <span className="text-muted-foreground">/100</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <Textarea placeholder="Reviewer notes (optional)" rows={2} className="text-xs" />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setReviewItem(null)}>Cancel</Button>
+            <Button onClick={() => {
+              if (!reviewItem) return;
+              reviewAiInterviewCascade(reviewItem.studentId, reviewItem.score, user!.id);
+              setReviewQueue(q => q.filter(x => x.id !== reviewItem.id));
+              setReviewItem(null);
+              toast.success("Review saved · leaderboard updated");
+            }} className="bg-lnx-teal-500 text-white hover:bg-lnx-teal-500/90">Save Review</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <MultiChannelPreviewDialog
+        open={!!nudgeStudent} onOpenChange={(v) => !v && setNudgeStudent(null)}
+        title={`Nudge: ${nudgeStudent?.student.firstName}`}
+        subject="Stay on track with your placement prep"
+        body={`Hi ${nudgeStudent?.student.firstName},\n\nWe noticed you haven't practised MCQs or attempted an AI interview this week. Complete at least one practice session today to stay competitive.\n\nReply to this for help.\n\n— TPO Team`}
+        recipients={nudgeStudent ? [{ id: nudgeStudent.student.id, name: `${nudgeStudent.student.firstName} ${nudgeStudent.student.lastName}` }] : []}
+        defaultChannels={["whatsapp"]}
+        onSend={(ch) => { if (!nudgeStudent) return; sendNudgeCascade(nudgeStudent.student.id, ch, user!.id); setInactiveStudents(q => q.filter(x => x.id !== nudgeStudent.id)); toast.success(`Nudge sent`, { description: `${nudgeStudent.student.firstName} · ${ch.join(", ")}` }); }}
+      />
+      <CreateDriveDialog open={createOpen} onOpenChange={setCreateOpen} actorId={user!.id} />
+      <ProgressDialog open={mcqGenOpen} onOpenChange={setMcqGenOpen}
+        title="Generating MCQs from Job Description" description="AI analysing JD · creating 20 questions…"
+        durationMs={2800} successText="20 questions generated"
+        onComplete={() => toast.success("20 MCQs generated", { description: "Saved to bank · ready to attach to any drive" })} />
     </>
   );
 }
 
+function CreateDriveDialog({ open, onOpenChange, actorId }: { open: boolean; onOpenChange: (v: boolean) => void; actorId: string }) {
+  const companies = usePlacementStore(s => s.companies);
+  const [company, setCompany] = useState(companies[0]?.id ?? "");
+  const [role, setRole] = useState("Software Engineer");
+  const [pkg, setPkg] = useState("₹8 LPA");
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Create New Drive</DialogTitle>
+          <DialogDescription>Students will be notified once published.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div><Label className="text-xs">Company</Label>
+            <select className="mt-1 w-full rounded-md border bg-background px-2 py-1.5 text-sm" value={company} onChange={(e) => setCompany(e.target.value)}>
+              {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+          <div><Label className="text-xs">Role</Label><Input value={role} onChange={(e) => setRole(e.target.value)} className="mt-1" /></div>
+          <div><Label className="text-xs">Package</Label><Input value={pkg} onChange={(e) => setPkg(e.target.value)} className="mt-1" /></div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button className="bg-lnx-teal-500 text-white hover:bg-lnx-teal-500/90" onClick={() => {
+            const newDrive = {
+              id: `drv_${Date.now().toString(36)}`, companyId: company, role, package: pkg,
+              branches: ["CSE","ECE"], cgpaCutoff: 7.0, backlogsAllowed: false,
+              startDate: new Date(Date.now()+3*864e5).toISOString(),
+              endDate: new Date(Date.now()+10*864e5).toISOString(),
+              appliedIds: [], shortlistedIds: [], selectedIds: [],
+              status: "upcoming" as const,
+            };
+            import("@/lib/cascade").then(m => m.createDriveCascade(newDrive, actorId));
+            toast.success(`Drive created · ${companies.find(c => c.id === company)?.name}`, { description: "40 students notified" });
+            onOpenChange(false);
+          }}>Publish Drive</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ════════════════════════════════════════════════════════════════════════
-// FINANCE HEAD — money flow
+// FINANCE HEAD — Accounting console
 // ════════════════════════════════════════════════════════════════════════
 function FinanceDashboard() {
   const { user } = useAccess();
-  const ledger = useFinanceStore(s => s.ledger);
   const users = useUsersStore(s => s.users);
-  const todayCollection = ledger.filter(l => l.payment).slice(0, 4).reduce((a, l) => a + (l.payment ?? 0), 0) + 184500;
-  const pendingDues = 1240000;
   const students = users.filter(u => u.role === "student");
-  const defaulters = students.filter(s => (s.attendancePct ?? 100) < 70).slice(0, 8);
+  const ledger = useFinanceStore(s => s.ledger);
+
+  // Mock queues
+  const [refunds, setRefunds] = useState([
+    { id: "rf1", studentId: students[0]?.id ?? "u_stu_001", amount: 75000, reason: "Transfer to another institute", daysWaiting: 2, mode: "Razorpay", requestedBy: "Registrar" },
+    { id: "rf2", studentId: students[1]?.id ?? "u_stu_002", amount: 62500, reason: "Excess fee paid", daysWaiting: 1, mode: "UPI", requestedBy: "Registrar" },
+    { id: "rf3", studentId: students[2]?.id ?? "u_stu_003", amount: 48000, reason: "Hostel cancellation", daysWaiting: 4, mode: "NetBanking", requestedBy: "Registrar" },
+  ]);
+  const [waivers, setWaivers] = useState([
+    { id: "wv1", studentId: students[3]?.id ?? "u_stu_004", pct: 30, reason: "Single-parent income certificate verified", daysWaiting: 2 },
+    { id: "wv2", studentId: students[4]?.id ?? "u_stu_005", pct: 50, reason: "EWS category", daysWaiting: 3 },
+    { id: "wv3", studentId: students[5]?.id ?? "u_stu_006", pct: 25, reason: "Sibling concession", daysWaiting: 1 },
+  ]);
+  const [processQueue, setProcessQueue] = useState([
+    { id: "pq1", studentId: students[6]?.id ?? "u_stu_007", amount: 55000, approvedOn: "29 May 2026", bank: "HDFC ****4421" },
+    { id: "pq2", studentId: students[7]?.id ?? "u_stu_008", amount: 40000, approvedOn: "30 May 2026", bank: "SBI ****9912" },
+  ]);
+  const [discrepancies] = useState([
+    { id: "dc1", date: "01 Jun 2026", txnId: "pay_LKR7s89Hk", razorpay: 60000, ledger: 55000, diff: 5000 },
+    { id: "dc2", date: "31 May 2026", txnId: "pay_HJK3mZ", razorpay: 30000, ledger: 30000, diff: 0 },
+  ]);
+  const [defaulters] = useState(students.slice(0, 6).map((s, i) => ({
+    id: `df_${s.id}`, student: s, amount: 45000 + i * 8000, days: 12 + i * 4, lastReminder: i === 0 ? "Never" : `${i * 3}d ago`,
+  })));
+
+  const [confirmRefund, setConfirmRefund] = useState<typeof refunds[0] | null>(null);
+  const [rejectRefund, setRejectRefund] = useState<typeof refunds[0] | null>(null);
+  const [confirmWaiver, setConfirmWaiver] = useState<typeof waivers[0] | null>(null);
+  const [rejectWaiver, setRejectWaiver] = useState<typeof waivers[0] | null>(null);
+  const [transferOpen, setTransferOpen] = useState<typeof processQueue[0] | null>(null);
+  const [reminderStudent, setReminderStudent] = useState<typeof defaulters[0] | null>(null);
+  const [blockStudent, setBlockStudent] = useState<typeof defaulters[0] | null>(null);
+  const [disburseOpen, setDisburseOpen] = useState(false);
+  const [bulkReminderOpen, setBulkReminderOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [reconcileOpen, setReconcileOpen] = useState(false);
+
+  const todayCollection = ledger.filter(l => l.payment).reduce((a, l) => a + (l.payment ?? 0), 0) + 285000;
+  const totalDues = defaulters.reduce((a, d) => a + d.amount, 0);
 
   return (
     <>
       <DashboardHero user={user!} kpis={
         <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-          <KpiCard label="Today's Collection" value={inr(todayCollection)} icon={Wallet} tone="green" />
-          <KpiCard label="Pending Dues" value={lakhs(pendingDues)} icon={DollarSign} tone="amber" />
-          <KpiCard label="Defaulters" value={defaulters.length + 30} icon={AlertTriangle} tone="red" />
-          <KpiCard label="Refunds Pending" value={4} icon={RotateCcw} tone="amber" />
-          <KpiCard label="Reconciliation" value="OK" icon={CheckCircle2} tone="green" />
+          <Link to="/finance/ledger"><KpiCard label="Today's Collection" value={lakhs(todayCollection)} icon={Wallet} tone="teal" /></Link>
+          <Link to="/finance/defaulters"><KpiCard label="Total Pending Dues" value={lakhs(totalDues)} icon={AlertTriangle} tone="amber" /></Link>
+          <Link to="/finance/defaulters"><KpiCard label="Defaulters" value={defaulters.length} icon={Users} /></Link>
+          <KpiCard label="Refunds Pending" value={refunds.length} icon={RotateCcw} />
+          <KpiCard label="Reconciliation" value={discrepancies.filter(d => d.diff > 0).length === 0 ? "Clean" : `${discrepancies.filter(d => d.diff > 0).length} issues`} icon={GitPullRequest} tone={discrepancies.filter(d => d.diff > 0).length ? "amber" : "teal"} />
         </div>
       } />
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Section title="Refund Approval Queue">
-          <Card className="p-0">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/40 text-xs text-muted-foreground"><tr><th className="px-3 py-2 text-left">Student</th><th className="px-3 py-2 text-left">Amount</th><th className="px-3 py-2 text-left">Reason</th><th className="px-3 py-2"></th></tr></thead>
-              <tbody>
-                {students.slice(0, 4).map((s, i) => (
-                  <tr key={s.id} className="border-t">
-                    <td className="px-3 py-2 text-sm font-medium text-lnx-navy-800">{s.firstName} {s.lastName}</td>
-                    <td className="px-3 py-2 text-xs tabular">{inr([12000, 8500, 15000, 6000][i])}</td>
-                    <td className="px-3 py-2 text-xs text-muted-foreground">{["Withdrawal","Excess pmt","Programme change","Hostel adj"][i]}</td>
-                    <td className="px-3 py-2 text-right">
-                      <Button size="sm" variant="outline" onClick={() => toast.info("Rejected")}>Reject</Button>
-                      <Button size="sm" className="ml-1.5" onClick={() => toast.success("Refund approved · queued for processing")}>Approve</Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </Card>
-        </Section>
-
-        <Section title="Waiver Approval Queue">
-          <Card className="p-4 space-y-3">
-            {students.slice(4, 7).map((s, i) => (
-              <div key={s.id} className="flex items-center justify-between border-t pt-3 first:border-0 first:pt-0">
+      <div className="space-y-4">
+        <ActionQueueCard
+          title="Refunds awaiting approval" count={refunds.length} badgeTone="amber"
+          emptyText="No refunds pending"
+          rows={refunds}
+          renderRow={(r) => {
+            const stu = students.find(s => s.id === r.studentId);
+            return (
+              <div className="flex items-center gap-3">
+                {stu && <Avatar firstName={stu.firstName} lastName={stu.lastName} color={stu.avatarColor} initials={stu.initials} size="sm" />}
                 <div>
-                  <div className="text-sm font-medium text-lnx-navy-800">{s.firstName} {s.lastName}</div>
-                  <div className="text-xs text-muted-foreground">{[25, 50, 30][i]}% waiver · {["EWS","Sibling","Merit"][i]}</div>
-                </div>
-                <div className="flex gap-1.5">
-                  <Button size="sm" variant="outline" onClick={() => toast.info("Rejected")}>Reject</Button>
-                  <Button size="sm" onClick={() => toast.success("Waiver approved")}>Approve</Button>
+                  <p className="text-sm font-medium">{stu?.firstName} {stu?.lastName} <span className="ml-1 text-sm font-semibold text-lnx-navy-800">· ₹{r.amount.toLocaleString("en-IN")}</span></p>
+                  <p className="text-xs text-muted-foreground">{r.reason} · Paid via {r.mode} · {r.daysWaiting}d waiting</p>
                 </div>
               </div>
-            ))}
-          </Card>
-        </Section>
-      </div>
+            );
+          }}
+          actions={[
+            { label: "Approve & Process", tone: "primary", onClick: (r) => setConfirmRefund(r) },
+            { label: "Reject", tone: "danger", onClick: (r) => setRejectRefund(r) },
+          ]}
+        />
 
-      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Section title="Daily Collection — 30 days" className="lg:col-span-2">
+        <ActionQueueCard
+          title="Fee waivers awaiting approval" count={waivers.length} badgeTone="amber"
+          emptyText="No waivers pending"
+          rows={waivers}
+          renderRow={(r) => {
+            const stu = students.find(s => s.id === r.studentId);
+            return (
+              <div>
+                <p className="text-sm font-medium">{stu?.firstName} {stu?.lastName} <span className="ml-1 text-sm font-semibold text-lnx-teal-500">· {r.pct}% waiver</span></p>
+                <p className="text-xs text-muted-foreground">Registrar: {r.reason} · {r.daysWaiting}d waiting</p>
+              </div>
+            );
+          }}
+          actions={[
+            { label: "Approve", tone: "primary", onClick: (r) => setConfirmWaiver(r) },
+            { label: "Reject", tone: "danger", onClick: (r) => setRejectWaiver(r) },
+          ]}
+        />
+
+        <ActionQueueCard
+          title="Approved refunds to process" count={processQueue.length}
+          emptyText="All refunds processed"
+          rows={processQueue}
+          renderRow={(r) => {
+            const stu = students.find(s => s.id === r.studentId);
+            return (
+              <div>
+                <p className="text-sm font-medium">{stu?.firstName} {stu?.lastName} <span className="ml-1 text-sm font-semibold text-lnx-navy-800">· ₹{r.amount.toLocaleString("en-IN")}</span></p>
+                <p className="text-xs text-muted-foreground">Approved {r.approvedOn} · {r.bank}</p>
+              </div>
+            );
+          }}
+          actions={[
+            { label: "Mark as Transferred", tone: "primary", icon: Banknote, onClick: (r) => setTransferOpen(r) },
+          ]}
+        />
+
+        <Card className="overflow-hidden">
+          <div className="flex items-center justify-between border-b px-4 py-3">
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-semibold">Top Defaulters</h3>
+              <Badge variant="outline" className="text-xs">{defaulters.length}</Badge>
+            </div>
+            <Button size="sm" variant="outline" onClick={() => setBulkReminderOpen(true)} className="h-7 text-xs"><Send className="mr-1 h-3 w-3" />Bulk Reminders</Button>
+          </div>
+          <ul className="divide-y">
+            {defaulters.map(d => (
+              <li key={d.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
+                <div className="flex min-w-0 items-center gap-3">
+                  <Avatar firstName={d.student.firstName} lastName={d.student.lastName} color={d.student.avatarColor} initials={d.student.initials} size="sm" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">{d.student.firstName} {d.student.lastName}</p>
+                    <p className="text-xs text-muted-foreground">₹{d.amount.toLocaleString("en-IN")} · {d.days}d overdue · last reminder {d.lastReminder}</p>
+                  </div>
+                </div>
+                <div className="flex gap-1">
+                  <Button size="sm" variant="outline" onClick={() => setReminderStudent(d)} className="h-7 text-xs"><Send className="mr-1 h-3 w-3" />Remind</Button>
+                  <Button size="sm" variant="outline" onClick={() => setBlockStudent(d)} className="h-7 border-lnx-red-500/40 text-xs text-lnx-red-500"><Lock className="mr-1 h-3 w-3" />Block</Button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </Card>
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <Card className="p-4">
-            <LineMini values={Array.from({ length: 30 }, (_, i) => 80 + ((i * 13 + 17) % 70))} />
-            <div className="mt-2 flex justify-between text-xs text-muted-foreground">
-              <span>30d ago</span><span className="tabular">Today · {inr(todayCollection)}</span>
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-sm font-semibold">Scholarship Pipeline</h3>
+              <Button size="sm" onClick={() => setDisburseOpen(true)} className="h-7 bg-lnx-teal-500 text-xs text-white hover:bg-lnx-teal-500/90">Disburse Batch</Button>
+            </div>
+            <div className="grid grid-cols-5 gap-2 text-center text-xs">
+              {[["Applied",24],["Verified",18],["Approved",12],["Disbursed",8],["NSP",6]].map(([l,v]) => (
+                <div key={l as string} className="rounded-md border p-2">
+                  <div className="text-base font-semibold">{v as number}</div>
+                  <div className="text-[10px] text-muted-foreground">{l as string}</div>
+                </div>
+              ))}
             </div>
           </Card>
-        </Section>
-
-        <Section title="Scholarship Pipeline">
-          <Card className="p-4 space-y-2 text-xs">
-            {[
-              { l: "Applied", v: 51, c: "bg-slate-100 text-slate-700" },
-              { l: "Verified", v: 27, c: "bg-blue-100 text-blue-700" },
-              { l: "Approved", v: 19, c: "bg-amber-100 text-amber-700" },
-              { l: "Disbursed", v: 15, c: "bg-emerald-100 text-emerald-700" },
-              { l: "NSP-Synced", v: 12, c: "bg-teal-100 text-teal-700" },
-            ].map(r => (
-              <div key={r.l} className={`flex items-center justify-between rounded px-2 py-1.5 ${r.c}`}>
-                <span className="font-medium">{r.l}</span><span className="tabular">{r.v}</span>
-              </div>
-            ))}
+          <Card className="p-4">
+            <h3 className="mb-3 text-sm font-semibold">Reconciliation Discrepancies</h3>
+            <ul className="space-y-1.5 text-xs">
+              {discrepancies.map(d => (
+                <li key={d.id} className="flex items-center justify-between rounded-md border p-2">
+                  <div>
+                    <div className="font-mono text-[11px]">{d.txnId}</div>
+                    <div className="text-[10px] text-muted-foreground">{d.date} · RZ ₹{d.razorpay.toLocaleString("en-IN")} · LG ₹{d.ledger.toLocaleString("en-IN")}</div>
+                  </div>
+                  {d.diff > 0 ? (
+                    <Badge variant="outline" className="border-lnx-red-500/40 text-lnx-red-500">₹{d.diff.toLocaleString("en-IN")} diff</Badge>
+                  ) : (
+                    <Badge variant="outline" className="border-lnx-green-500/40 text-lnx-green-500">Matched</Badge>
+                  )}
+                </li>
+              ))}
+            </ul>
+            <Button size="sm" variant="outline" onClick={() => setReconcileOpen(true)} className="mt-3 w-full">Reconcile Razorpay</Button>
           </Card>
+        </div>
+
+        <Section title="Quick Actions">
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
+            <QuickAction icon={Plus} label="+ Add Fee Structure" tone="primary" href="/finance/fee-structures" />
+            <QuickAction icon={Send} label="Bulk Send Reminders" onClick={() => setBulkReminderOpen(true)} />
+            <QuickAction icon={Banknote} label="Process Refund Batch" onClick={() => toast.success("Batch processing started")} />
+            <QuickAction icon={FileBarChart} label="Export Financial Report" onClick={() => setExportOpen(true)} />
+            <QuickAction icon={GitPullRequest} label="Reconcile Razorpay" onClick={() => setReconcileOpen(true)} />
+          </div>
         </Section>
       </div>
 
-      <Section title="Top Defaulters" className="mt-4">
-        <Card className="p-0">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/40 text-xs text-muted-foreground"><tr><th className="px-3 py-2 text-left">Student</th><th className="px-3 py-2 text-left">Amount</th><th className="px-3 py-2 text-left">Days Overdue</th><th className="px-3 py-2"></th></tr></thead>
-            <tbody>
-              {defaulters.map((s, i) => (
-                <tr key={s.id} className="border-t">
-                  <td className="px-3 py-2"><div className="text-sm font-medium text-lnx-navy-800">{s.firstName} {s.lastName}</div><div className="text-[11px] text-muted-foreground">{s.department} · {s.rollNo}</div></td>
-                  <td className="px-3 py-2 text-xs tabular">{inr(60000 + i * 12000)}</td>
-                  <td className="px-3 py-2 text-xs tabular text-lnx-red-500">{15 + i * 4}d</td>
-                  <td className="px-3 py-2 text-right">
-                    <Button size="sm" variant="outline" onClick={() => toast.success(`Reminder sent · WhatsApp + Email to ${s.firstName}`)}><Send className="mr-1 h-3 w-3" />Send Reminder</Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Card>
-      </Section>
-
-      <Section title="Quick Actions" className="mt-6">
-        <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-          <QuickAction icon={Plus} label="Add Fee Structure" href="/finance/fee-structures" tone="primary" />
-          <QuickAction icon={Send} label="Bulk Send Reminders" onClick={() => toast.success("Bulk reminders queued · 38 recipients")} />
-          <QuickAction icon={RotateCcw} label="Process Refund" onClick={() => toast.info("Refund flow opened")} />
-          <QuickAction icon={FileSpreadsheet} label="Export Financial Report" onClick={() => toast.success("Financial report exported")} />
-        </div>
-      </Section>
+      <ConfirmDialog open={!!confirmRefund} onOpenChange={(v) => !v && setConfirmRefund(null)}
+        title={`Approve refund of ₹${confirmRefund?.amount.toLocaleString("en-IN")}`}
+        description={`To ${students.find(s => s.id === confirmRefund?.studentId)?.firstName} ${students.find(s => s.id === confirmRefund?.studentId)?.lastName}. Funds will move to bank transfer queue.`}
+        confirmLabel="Approve & Process" withComment
+        onConfirm={() => {
+          if (!confirmRefund) return;
+          approveRefundCascade(confirmRefund.studentId, confirmRefund.amount, user!.id);
+          setRefunds(q => q.filter(x => x.id !== confirmRefund.id));
+          setProcessQueue(q => [...q, { id: `pq_${confirmRefund.id}`, studentId: confirmRefund.studentId, amount: confirmRefund.amount, approvedOn: format(new Date(), "dd MMM yyyy"), bank: "Auto-fetched" }]);
+          toast.success("Refund approved · moved to processing queue");
+        }} />
+      <ReasonDialog open={!!rejectRefund} onOpenChange={(v) => !v && setRejectRefund(null)}
+        title="Reject refund" description="Reason will be sent to student & registrar"
+        confirmLabel="Reject"
+        onSubmit={() => { if (!rejectRefund) return; setRefunds(q => q.filter(x => x.id !== rejectRefund.id)); toast(`Refund rejected · ₹${rejectRefund.amount.toLocaleString("en-IN")}`); }} />
+      <ConfirmDialog open={!!confirmWaiver} onOpenChange={(v) => !v && setConfirmWaiver(null)}
+        title={`Approve ${confirmWaiver?.pct}% waiver`} description={confirmWaiver?.reason}
+        confirmLabel="Approve Waiver" withComment
+        onConfirm={() => {
+          if (!confirmWaiver) return;
+          approveWaiverCascade(confirmWaiver.studentId, confirmWaiver.pct, user!.id);
+          setWaivers(q => q.filter(x => x.id !== confirmWaiver.id));
+          toast.success(`${confirmWaiver.pct}% waiver applied`);
+        }} />
+      <ReasonDialog open={!!rejectWaiver} onOpenChange={(v) => !v && setRejectWaiver(null)}
+        title="Reject waiver" confirmLabel="Reject"
+        onSubmit={() => { if (!rejectWaiver) return; setWaivers(q => q.filter(x => x.id !== rejectWaiver.id)); toast(`Waiver declined`); }} />
+      <BulkTransferDialog
+        open={!!transferOpen} onOpenChange={(v) => !v && setTransferOpen(null)}
+        title="Confirm bank transfer"
+        items={transferOpen ? [{ id: transferOpen.id, name: `${students.find(s => s.id === transferOpen.studentId)?.firstName ?? ""} ${students.find(s => s.id === transferOpen.studentId)?.lastName ?? ""}`, amount: transferOpen.amount }] : []}
+        onConfirm={(utr) => {
+          if (!transferOpen) return;
+          processRefundCascade(transferOpen.studentId, transferOpen.amount, utr, user!.id);
+          setProcessQueue(q => q.filter(x => x.id !== transferOpen.id));
+          toast.success("Refund transferred", { description: `UTR ${utr}` });
+        }} />
+      <MultiChannelPreviewDialog
+        open={!!reminderStudent} onOpenChange={(v) => !v && setReminderStudent(null)}
+        title="Send fee reminder"
+        subject="Fee dues pending"
+        body={`Dear ${reminderStudent?.student.firstName},\n\nYour fee dues of ₹${reminderStudent?.amount.toLocaleString("en-IN")} are ${reminderStudent?.days} days overdue. Please clear within 5 working days to avoid suspension.\n\nPay online: portal.bharatedu.in\n\n— Accounts Office`}
+        recipients={reminderStudent ? [{ id: reminderStudent.student.id, name: `${reminderStudent.student.firstName} ${reminderStudent.student.lastName}` }] : []}
+        defaultChannels={["whatsapp","sms","email"]}
+        onSend={(ch) => { if (!reminderStudent) return; sendFeeReminderCascade(reminderStudent.student.id, ch, user!.id); toast.success("Reminder sent"); }}
+      />
+      <ConfirmDialog open={!!blockStudent} onOpenChange={(v) => !v && setBlockStudent(null)}
+        title={`Block exam access for ${blockStudent?.student.firstName}?`}
+        description="Student's hall ticket cannot be generated until dues are cleared. Student and parent will be notified."
+        confirmLabel="Block Access" tone="danger" withComment
+        onConfirm={() => { if (!blockStudent) return; blockExamAccessCascade(blockStudent.student.id, user!.id); toast(`Exam access blocked for ${blockStudent.student.firstName}`); }} />
+      <ConfirmDialog open={disburseOpen} onOpenChange={setDisburseOpen}
+        title="Disburse approved scholarships"
+        description="12 students × ₹15,000 each — total ₹1,80,000 will be credited to student ledgers."
+        confirmLabel="Disburse Batch" withComment
+        onConfirm={() => { disburseScholarshipCascade(12, 15000, user!.id); toast.success("Scholarships disbursed", { description: "12 students notified" }); }} />
+      <MultiChannelPreviewDialog
+        open={bulkReminderOpen} onOpenChange={setBulkReminderOpen}
+        title="Bulk fee reminders"
+        subject="Fee dues pending"
+        body={`Dear student,\n\nYour fee dues are pending. Please clear within 5 working days.\n\n— Accounts Office`}
+        recipients={defaulters.map(d => ({ id: d.student.id, name: `${d.student.firstName} ${d.student.lastName}` }))}
+        defaultChannels={["whatsapp","sms"]}
+        onSend={(ch) => { defaulters.forEach(d => sendFeeReminderCascade(d.student.id, ch, user!.id)); toast.success(`${defaulters.length} reminders sent`); }}
+      />
+      <ProgressDialog open={exportOpen} onOpenChange={setExportOpen}
+        title="Exporting Financial Report" description="Generating PDF · Excel · Tally formats…"
+        durationMs={2400} successText="Report ready"
+        onComplete={() => toast.success("Financial report exported", { description: "finance-jun-2026.zip" })} />
+      <ProgressDialog open={reconcileOpen} onOpenChange={setReconcileOpen}
+        title="Reconciling Razorpay" description="Matching transactions with ledger…"
+        durationMs={2200} successText="2 matched · 1 needs review"
+        onComplete={() => toast.success("Reconciliation done", { description: "1 discrepancy flagged for manual review" })} />
     </>
   );
 }
 
 // ════════════════════════════════════════════════════════════════════════
-// EXAM CELL HEAD — exam lifecycle
+// EXAM CELL HEAD — Operations center
 // ════════════════════════════════════════════════════════════════════════
 function ExamDashboard() {
   const { user } = useAccess();
+  const users = useUsersStore(s => s.users);
+  const students = users.filter(u => u.role === "student");
+  const sections = useAcademicStore(s => s.sections);
+
+  const [overrideQueue, setOverrideQueue] = useState(students.slice(0, 5).map((s, i) => ({
+    id: `ov_${s.id}`, student: s,
+    exam: ["Mid Sem 1","End Sem","Mid Sem 2","End Sem","Mid Sem 1"][i],
+    reason: ["Attendance 64%","Fee dues ₹35K","Both","Attendance 71%","Fee dues ₹28K"][i],
+    hodRequested: i % 2 === 0,
+  })));
+  const [marksLockReqs, setMarksLockReqs] = useState([
+    { id: "ml1", subject: "Database Management Systems", faculty: "Dr. Anjali Sharma", section: "CSE-A1", exam: "Mid Sem 1", count: 20 },
+    { id: "ml2", subject: "Computer Networks", faculty: "Prof. Sneha Kapoor", section: "CSE-A2", exam: "Mid Sem 1", count: 20 },
+    { id: "ml3", subject: "Thermodynamics", faculty: "Dr. Rajesh Yadav", section: "ME-C1", exam: "Mid Sem 1", count: 25 },
+  ]);
+  const [publishQueue, setPublishQueue] = useState([
+    { id: "pub1", section: "CSE-A1", exam: "Mid Sem 1", subjects: 5, ready: true },
+    { id: "pub2", section: "ECE-B1", exam: "Mid Sem 1", subjects: 4, ready: true },
+  ]);
+  const [reevalQueue, setReevalQueue] = useState(students.slice(0, 4).map((s, i) => ({
+    id: `re_${s.id}`, student: s,
+    subject: ["DBMS","OS","Math III","CN"][i],
+    currentMarks: [62,58,55,68][i],
+    fee: 500, daysWaiting: 1 + i,
+  })));
+
+  const [confirmOverride, setConfirmOverride] = useState<typeof overrideQueue[0] | null>(null);
+  const [denyOverride, setDenyOverride] = useState<typeof overrideQueue[0] | null>(null);
+  const [confirmLock, setConfirmLock] = useState<typeof marksLockReqs[0] | null>(null);
+  const [confirmPublish, setConfirmPublish] = useState<typeof publishQueue[0] | null>(null);
+  const [nadOpen, setNadOpen] = useState<{ section: string; exam: string } | null>(null);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [hallTicketOpen, setHallTicketOpen] = useState(false);
+
   return (
     <>
       <DashboardHero user={user!} kpis={
         <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-          <KpiCard label="Upcoming Exams (30d)" value={8} icon={Calendar} tone="teal" />
-          <KpiCard label="Eligibility Blocked" value={67} icon={Lock} tone="red" />
-          <KpiCard label="Marks Entry" value="78%" icon={ClipboardList} tone="amber" />
-          <KpiCard label="Results Pending Publish" value={3} icon={Award} />
-          <KpiCard label="Re-evaluation Queue" value={9} icon={ScrollText} />
+          <Link to="/academic/examinations"><KpiCard label="Upcoming Exams" value="4" icon={Calendar} tone="teal" /></Link>
+          <KpiCard label="Eligibility-blocked" value={overrideQueue.length} icon={Lock} tone="amber" />
+          <KpiCard label="Marks Entry" value="78%" icon={ClipboardList} />
+          <KpiCard label="Results to Publish" value={publishQueue.length} icon={Award} tone="amber" />
+          <KpiCard label="Re-eval Queue" value={reevalQueue.length} icon={RotateCcw} />
         </div>
       } />
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Section title="Hall Ticket Override Queue">
-          <Card className="p-0">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/40 text-xs text-muted-foreground"><tr><th className="px-3 py-2 text-left">Student</th><th className="px-3 py-2 text-left">Block Reason</th><th className="px-3 py-2"></th></tr></thead>
-              <tbody>
-                {["Vikas Chauhan","Aarav Patel","Priya Sharma","Rohan Kumar"].map((n, i) => (
-                  <tr key={n} className="border-t">
-                    <td className="px-3 py-2 text-sm font-medium text-lnx-navy-800">{n}</td>
-                    <td className="px-3 py-2 text-xs text-muted-foreground">{["Attendance < 75% (DBMS)","Fee dues ₹40k","Backlog OS 3","Attendance < 75% (CN)"][i]}</td>
-                    <td className="px-3 py-2 text-right">
-                      <Button size="sm" variant="outline" onClick={() => toast.info("Override rejected")}>Reject</Button>
-                      <Button size="sm" className="ml-1.5" onClick={() => toast.success("Override approved · hall ticket issued")}>Approve</Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </Card>
-        </Section>
-
-        <Section title="Marks Lock Requests">
-          <Card className="p-4 space-y-3">
-            {["DBMS · Prof Anjali Sharma","OS · Prof Meena Iyer","Maths III · Prof Arjun Nair"].map((s) => (
-              <div key={s} className="flex items-center justify-between border-t pt-3 first:border-0 first:pt-0">
-                <div className="text-sm font-medium text-lnx-navy-800">{s}</div>
-                <Button size="sm" onClick={() => toast.success("Marks locked · ready to publish")}>Lock</Button>
+      <div className="space-y-4">
+        <ActionQueueCard
+          title="Students blocked from upcoming exams" count={overrideQueue.length} badgeTone="amber"
+          emptyText="No eligibility overrides pending"
+          rows={overrideQueue}
+          renderRow={(r) => (
+            <div className="flex items-center gap-3">
+              <Avatar firstName={r.student.firstName} lastName={r.student.lastName} color={r.student.avatarColor} initials={r.student.initials} size="sm" />
+              <div>
+                <p className="text-sm font-medium">{r.student.firstName} {r.student.lastName} <span className="ml-1 text-xs font-normal text-muted-foreground">· {r.exam}</span></p>
+                <p className="text-xs text-muted-foreground">{r.reason} {r.hodRequested && <Badge variant="outline" className="ml-1 h-4 border-lnx-teal-500/40 text-[10px] text-lnx-teal-500">HOD requested</Badge>}</p>
               </div>
-            ))}
-          </Card>
+            </div>
+          )}
+          actions={[
+            { label: "Approve Override", tone: "primary", onClick: (r) => setConfirmOverride(r) },
+            { label: "Deny", tone: "danger", onClick: (r) => setDenyOverride(r) },
+          ]}
+        />
+
+        <ActionQueueCard
+          title="Faculty marks lock requests" count={marksLockReqs.length}
+          emptyText="No marks lock requests"
+          rows={marksLockReqs}
+          renderRow={(r) => (
+            <div>
+              <p className="text-sm font-medium">{r.subject} · <span className="text-xs font-normal text-muted-foreground">{r.exam} · {r.section}</span></p>
+              <p className="text-xs text-muted-foreground">By {r.faculty} · {r.count} students</p>
+            </div>
+          )}
+          actions={[
+            { label: "Approve & Lock", tone: "primary", icon: Lock, onClick: (r) => setConfirmLock(r) },
+            { label: "Review", onClick: (r) => { toast.info(`Opening marks sheet for ${r.subject}`); } },
+          ]}
+        />
+
+        <ActionQueueCard
+          title="Results ready to publish" count={publishQueue.length}
+          emptyText="Nothing to publish"
+          rows={publishQueue}
+          renderRow={(r) => (
+            <div>
+              <p className="text-sm font-medium">{r.exam} · {r.section}</p>
+              <p className="text-xs text-muted-foreground">{r.subjects} subjects · all locked · ready to publish</p>
+            </div>
+          )}
+          actions={[
+            { label: "Publish Results", tone: "primary", icon: Award, onClick: (r) => setConfirmPublish(r) },
+            { label: "Push to NAD", icon: ShieldCheck, onClick: (r) => setNadOpen({ section: r.section, exam: r.exam }) },
+          ]}
+        />
+
+        <ActionQueueCard
+          title="Re-evaluation requests" count={reevalQueue.length}
+          emptyText="No re-evaluation requests"
+          rows={reevalQueue}
+          renderRow={(r) => (
+            <div className="flex items-center gap-3">
+              <Avatar firstName={r.student.firstName} lastName={r.student.lastName} color={r.student.avatarColor} initials={r.student.initials} size="sm" />
+              <div>
+                <p className="text-sm font-medium">{r.student.firstName} {r.student.lastName} · {r.subject}</p>
+                <p className="text-xs text-muted-foreground">Current: {r.currentMarks}/100 · Fee ₹{r.fee} paid · {r.daysWaiting}d</p>
+              </div>
+            </div>
+          )}
+          actions={[
+            { label: "Assign Evaluator", tone: "primary", onClick: (r) => { setReevalQueue(q => q.filter(x => x.id !== r.id)); toast.success(`Evaluator assigned for ${r.student.firstName} · ${r.subject}`); } },
+            { label: "Reject", tone: "danger", onClick: (r) => { setReevalQueue(q => q.filter(x => x.id !== r.id)); toast(`Re-evaluation rejected`); } },
+          ]}
+        />
+
+        <Section title="Quick Actions">
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
+            <QuickAction icon={Calendar} label="Schedule New Exam" tone="primary" onClick={() => setScheduleOpen(true)} />
+            <QuickAction icon={FileText} label="Generate Hall Tickets" onClick={() => setHallTicketOpen(true)} />
+            <QuickAction icon={ClipboardList} label="View Marks Entry" href="/academic/examinations" />
+            <QuickAction icon={Award} label="Publish Results" href="/academic/examinations" />
+            <QuickAction icon={ShieldCheck} label="NAD Bulk Push" onClick={() => setNadOpen({ section: "ALL", exam: "Sem 4 End" })} />
+          </div>
         </Section>
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Section title="Result Publish Queue">
-          <Card className="p-4 space-y-3">
-            {["Sem 5 · CSE-A1 · Mid-Sem","Sem 5 · ECE-B1 · Mid-Sem","Sem 3 · ME-C1 · Internal-2"].map(r => (
-              <div key={r} className="flex items-center justify-between rounded-lg border p-3">
-                <div className="text-sm font-medium text-lnx-navy-800">{r}</div>
-                <div className="flex gap-1.5">
-                  <Button size="sm" variant="outline" onClick={() => toast.info("Preview opened")}>Preview</Button>
-                  <Button size="sm" onClick={() => toast.success("Results published · students & parents notified")}>Publish</Button>
-                </div>
-              </div>
-            ))}
-          </Card>
-        </Section>
-
-        <Section title="Marks Entry Progress">
-          <Card className="p-4 space-y-3 text-xs">
-            {[
-              { s: "DBMS · Prof Anjali", v: 100 },
-              { s: "OS · Prof Meena", v: 80 },
-              { s: "Maths III · Prof Arjun", v: 60 },
-              { s: "AIML · Prof Anjali", v: 45 },
-              { s: "CN · Prof Neha", v: 20 },
-            ].map(r => (
-              <div key={r.s}>
-                <div className="flex justify-between"><span className="font-medium text-lnx-navy-800">{r.s}</span><span className="text-muted-foreground tabular">{r.v}%</span></div>
-                <Progress value={r.v} className="mt-1 h-2" />
-              </div>
-            ))}
-          </Card>
-        </Section>
-      </div>
-
-      <Section title="Quick Actions" className="mt-6">
-        <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-          <QuickAction icon={Plus} label="Create Exam Pattern" href="/academic/examinations" tone="primary" />
-          <QuickAction icon={Calendar} label="Schedule Exam" href="/academic/examinations" />
-          <QuickAction icon={FileText} label="Generate Hall Tickets" onClick={() => toast.success("Hall tickets generated · 1,180 PDFs")} />
-          <QuickAction icon={Send} label="Push Latest to NAD" onClick={() => toast.success("NAD push initiated · DigiLocker sync")} />
-        </div>
-      </Section>
+      <ConfirmDialog open={!!confirmOverride} onOpenChange={(v) => !v && setConfirmOverride(null)}
+        title={`Approve eligibility override for ${confirmOverride?.student.firstName}?`}
+        description={`Hall ticket will be regenerated for ${confirmOverride?.exam}. HOD will be notified.`}
+        confirmLabel="Approve Override" withComment
+        onConfirm={(c) => {
+          if (!confirmOverride) return;
+          overrideEligibilityCascade(confirmOverride.student.id, true, c || "HOD recommendation", user!.id);
+          setOverrideQueue(q => q.filter(x => x.id !== confirmOverride.id));
+          toast.success(`Override approved · hall ticket regenerated`);
+        }} />
+      <ReasonDialog open={!!denyOverride} onOpenChange={(v) => !v && setDenyOverride(null)}
+        title="Deny override" confirmLabel="Deny"
+        onSubmit={(r) => { if (!denyOverride) return; overrideEligibilityCascade(denyOverride.student.id, false, r, user!.id); setOverrideQueue(q => q.filter(x => x.id !== denyOverride.id)); toast(`Override denied`); }} />
+      <ConfirmDialog open={!!confirmLock} onOpenChange={(v) => !v && setConfirmLock(null)}
+        title={`Lock ${confirmLock?.subject} marks?`}
+        description={`Once locked, marks cannot be edited without an override. ${confirmLock?.exam} · ${confirmLock?.section}.`}
+        confirmLabel="Lock Marks"
+        onConfirm={() => { if (!confirmLock) return; lockMarksCascade(confirmLock.section, confirmLock.exam, confirmLock.subject, user!.id); setMarksLockReqs(q => q.filter(x => x.id !== confirmLock.id)); toast.success(`Marks locked · ready for publish`); }} />
+      <ConfirmDialog open={!!confirmPublish} onOpenChange={(v) => !v && setConfirmPublish(null)}
+        title={`Publish ${confirmPublish?.exam} results?`}
+        description={`${confirmPublish?.section} · all students & parents will be notified immediately.`}
+        confirmLabel="Publish Results"
+        onConfirm={() => { if (!confirmPublish) return; publishResultsCascade(confirmPublish.section, confirmPublish.exam, user!.id); setPublishQueue(q => q.filter(x => x.id !== confirmPublish.id)); toast.success("Results published"); }} />
+      <ConfirmDialog open={!!nadOpen} onOpenChange={(v) => !v && setNadOpen(null)}
+        title="Push grade cards to NAD (DigiLocker)?"
+        description={`${nadOpen?.exam} · ${nadOpen?.section}. Grade cards will be available in students' DigiLocker.`}
+        confirmLabel="Push to NAD"
+        onConfirm={() => { if (!nadOpen) return; nadPushCascade(nadOpen.section, nadOpen.exam, user!.id); toast.success("NAD push complete", { description: `${nadOpen.exam} · ${nadOpen.section}` }); }} />
+      <ProgressDialog open={scheduleOpen} onOpenChange={setScheduleOpen}
+        title="Scheduling Exam" durationMs={1800} successText="Exam scheduled"
+        onComplete={() => toast.success("Exam scheduled", { description: "Faculty invigilation slots auto-allocated" })} />
+      <ProgressDialog open={hallTicketOpen} onOpenChange={setHallTicketOpen}
+        title="Generating Hall Tickets" description="Checking eligibility · creating PDFs…"
+        durationMs={2400} successText="Hall tickets generated"
+        onComplete={() => toast.success("142 hall tickets generated", { description: "18 students blocked — see override queue" })} />
     </>
   );
 }
 
 // ════════════════════════════════════════════════════════════════════════
-// HOD — department-scoped
+// HOD — Department control
 // ════════════════════════════════════════════════════════════════════════
 function HodDashboard() {
   const { user } = useAccess();
-  const dept = user?.scope.ids[0] ?? user?.department ?? "CSE";
   const users = useUsersStore(s => s.users);
-  const students = users.filter(u => u.role === "student" && u.department === dept);
-  const faculty = users.filter(u => (u.role === "faculty" || u.role === "lab_faculty") && u.department === dept);
-  const atRisk = students.filter(s => (s.attendancePct ?? 100) < 75 || (s.cgpa ?? 10) < 7).slice(0, 6);
-  const topStudents = [...students].sort((a, b) => (b.cgpa ?? 0) - (a.cgpa ?? 0)).slice(0, 5);
-  const backlogs = students.filter(s => (s.backlogs ?? 0) > 0).length;
-  const avgAtt = Math.round(students.reduce((a, s) => a + (s.attendancePct ?? 0), 0) / Math.max(students.length, 1));
+  const dept = user!.department ?? "CSE";
+  const deptStudents = users.filter(u => u.role === "student" && u.department === dept);
+  const deptFaculty = users.filter(u => u.role === "faculty" && u.department === dept);
+  const navigate = useNavigate();
 
-  return (
-    <>
-      <DashboardHero user={user!} kpis={
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
-          <KpiCard label={`${dept} Students`} value={students.length} icon={GraduationCap} />
-          <KpiCard label={`${dept} Faculty`} value={faculty.length} icon={Users} delta={{ value: "1 vacant", up: false }} />
-          <KpiCard label="Avg Attendance" value={`${avgAtt}%`} icon={ClipboardList} tone={avgAtt >= 75 ? "green" : "amber"} />
-          <KpiCard label="Top 5 CGPA" value={(topStudents[0]?.cgpa ?? 0).toFixed(1)} icon={Award} tone="teal" />
-          <KpiCard label="Active Backlogs" value={backlogs} icon={BookMarked} tone={backlogs > 5 ? "amber" : "default"} />
-          <KpiCard label="Placements (batch)" value="68%" icon={Briefcase} tone="green" />
-        </div>
-      } />
+  const lowAtt = deptStudents.filter(s => (s.attendancePct ?? 100) < 75).slice(0, 5);
+  const [leaveReqs, setLeaveReqs] = useState(deptFaculty.slice(0, 3).map((f, i) => ({
+    id: `lv_${f.id}`, faculty: f, days: 1 + i, reason: ["Medical","Personal","Conference"][i],
+  })));
+  const [overrideReqs, setOverrideReqs] = useState(deptStudents.slice(0, 3).map((s, i) => ({
+    id: `or_${s.id}`, student: s, type: ["Attendance","Eligibility","Project Extension"][i],
+  })));
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Section title="Attendance Correction Requests">
-          <Card className="p-0">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/40 text-xs text-muted-foreground"><tr><th className="px-3 py-2 text-left">Faculty</th><th className="px-3 py-2 text-left">Change</th><th className="px-3 py-2"></th></tr></thead>
-              <tbody>
-                {faculty.slice(0, 3).map((f, i) => (
-                  <tr key={f.id} className="border-t">
-                    <td className="px-3 py-2 text-sm font-medium text-lnx-navy-800">Prof. {f.firstName} {f.lastName}</td>
-                    <td className="px-3 py-2 text-xs text-muted-foreground">{["Rohan: A → P","Priya: A → ML","Vikas: A → P"][i]} · {["DBMS","OS","CN"][i]}</td>
-                    <td className="px-3 py-2 text-right">
-                      <Button size="sm" variant="outline" onClick={() => toast.info("Rejected")}>Reject</Button>
-                      <Button size="sm" className="ml-1.5" onClick={() => toast.success("Correction approved · cascaded to student")}>Approve</Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </Card>
-        </Section>
-
-        <Section title="Leave Applications">
-          <Card className="p-4 space-y-3">
-            {faculty.slice(0, 3).map((f, i) => (
-              <div key={f.id} className="flex items-center justify-between border-t pt-3 first:border-0 first:pt-0">
-                <div>
-                  <div className="text-sm font-medium text-lnx-navy-800">Prof. {f.firstName} {f.lastName}</div>
-                  <div className="text-xs text-muted-foreground">{["CL · 2 days","EL · 4 days","Half-day"][i]} · {["Family","Vacation","Medical"][i]}</div>
-                </div>
-                <div className="flex gap-1.5">
-                  <Button size="sm" variant="outline" onClick={() => toast.info("Rejected")}>Reject</Button>
-                  <Button size="sm" onClick={() => toast.success("Leave approved")}>Approve</Button>
-                </div>
-              </div>
-            ))}
-          </Card>
-        </Section>
-      </div>
-
-      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Section title="Faculty Workload Heatmap" className="lg:col-span-2">
-          <Card className="p-4">
-            <div className="space-y-2">
-              {faculty.slice(0, 6).map((f, i) => {
-                const hrs = 8 + (i * 5) % 22;
-                const tone = hrs > 22 ? "bg-lnx-red-500" : hrs > 16 ? "bg-lnx-amber-500" : "bg-lnx-green-500";
-                return (
-                  <div key={f.id} className="flex items-center gap-3">
-                    <div className="w-32 truncate text-xs text-lnx-navy-800">Prof. {f.firstName}</div>
-                    <div className="relative h-5 flex-1 rounded bg-muted">
-                      <div className={`h-full rounded ${tone}`} style={{ width: `${Math.min(hrs * 4, 100)}%` }} />
-                    </div>
-                    <div className="w-12 text-right text-xs tabular text-muted-foreground">{hrs}h/wk</div>
-                  </div>
-                );
-              })}
-            </div>
-          </Card>
-        </Section>
-
-        <Section title="At-Risk Students">
-          <Card className="p-4 space-y-2">
-            {atRisk.map(s => (
-              <div key={s.id} className="flex items-center justify-between gap-2 border-t pt-2 first:border-0 first:pt-0">
-                <div className="min-w-0">
-                  <div className="truncate text-xs font-medium text-lnx-navy-800">{s.firstName} {s.lastName}</div>
-                  <div className="text-[11px] text-muted-foreground tabular">Att {s.attendancePct}% · CGPA {s.cgpa}</div>
-                </div>
-                <Button size="sm" variant="outline" className="shrink-0 text-[11px]" onClick={() => toast.success(`Parent notified · ${s.firstName}`)}>Notify Parent</Button>
-              </div>
-            ))}
-          </Card>
-        </Section>
-      </div>
-
-      <Section title="Quick Actions" className="mt-6">
-        <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-          <QuickAction icon={CheckCircle2} label="Approve Pending (Bulk)" onClick={() => toast.success("All pending items approved")} tone="primary" />
-          <QuickAction icon={Plus} label="Assign Faculty to Subject" href="/academic/subjects" />
-          <QuickAction icon={ShieldCheck} label="Submit NAAC Data" href="/compliance/naac" />
-          <QuickAction icon={FileSpreadsheet} label="Department Report" onClick={() => toast.success(`${dept} report exported`)} />
-        </div>
-      </Section>
-    </>
-  );
-}
-
-// ════════════════════════════════════════════════════════════════════════
-// FACULTY — daily teaching workflow
-// ════════════════════════════════════════════════════════════════════════
-function FacultyDashboard() {
-  const { user } = useAccess();
-  const academic = useAcademicStore();
-  const todaysSchedule = useMemo(() => {
-    const day = (new Date().getDay() + 6) % 7;
-    return academic.timetable
-      .filter(t => t.facultyId === user?.id && t.day === Math.min(day, 4))
-      .slice(0, 5)
-      .map((t, i) => {
-        const sub = academic.subjects.find(s => s.id === t.subjectId);
-        return {
-          time: ["09:00","10:00","11:15","12:15","02:00"][i] ?? "TBD",
-          subject: sub?.name ?? "—",
-          code: sub?.code,
-          section: t.sectionId,
-          room: t.roomId,
-          status: i === 0 ? "Marked" : i === 1 ? "Pending mark" : i === 2 ? "In progress" : "Upcoming",
-        };
-      });
-  }, [academic, user?.id]);
-
-  const pendingMark = todaysSchedule.filter(s => s.status === "Pending mark").length;
+  const [alertStudent, setAlertStudent] = useState<User | null>(null);
+  const [confirmLeave, setConfirmLeave] = useState<typeof leaveReqs[0] | null>(null);
+  const [confirmOR, setConfirmOR] = useState<typeof overrideReqs[0] | null>(null);
 
   return (
     <>
       <DashboardHero user={user!} kpis={
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          <KpiCard label="Today's Classes" value={todaysSchedule.length} icon={Calendar} tone="teal" />
-          <KpiCard label="Pending Attendance" value={pendingMark} icon={ClipboardList} tone={pendingMark ? "red" : "green"} />
-          <KpiCard label="Ungraded Submissions" value={7} icon={ScrollText} tone="amber" />
-          <KpiCard label="Leave Balance" value="CL 8 · EL 4" icon={Award} />
+          <KpiCard label={`${dept} Students`} value={deptStudents.length} icon={GraduationCap} tone="teal" />
+          <KpiCard label="Faculty in Dept" value={deptFaculty.length} icon={Users} />
+          <KpiCard label="Low Attendance (<75%)" value={lowAtt.length} icon={AlertTriangle} tone="amber" />
+          <KpiCard label="Pending Approvals" value={leaveReqs.length + overrideReqs.length} icon={ClipboardList} />
+        </div>
+      } />
+
+      <div className="space-y-4">
+        <ActionQueueCard
+          title={`At-risk students in ${dept}`} count={lowAtt.length} badgeTone="amber"
+          emptyText="All students above threshold"
+          rows={lowAtt.map(s => ({ ...s, id: s.id }))}
+          renderRow={(s) => (
+            <div className="flex items-center gap-3">
+              <Avatar firstName={s.firstName} lastName={s.lastName} color={s.avatarColor} initials={s.initials} size="sm" />
+              <div>
+                <p className="text-sm font-medium">{s.firstName} {s.lastName} <span className="ml-1 text-xs font-normal text-muted-foreground">· {s.sectionId}</span></p>
+                <p className="text-xs text-muted-foreground">Attendance: <strong className={(s.attendancePct ?? 100) < 65 ? "text-lnx-red-500" : "text-lnx-amber-500"}>{s.attendancePct}%</strong></p>
+              </div>
+            </div>
+          )}
+          actions={[
+            { label: "Send Alert", tone: "primary", icon: Send, onClick: (s) => setAlertStudent(s as any) },
+            { label: "View Profile", onClick: (s) => navigate({ to: `/people/students/${s.id}` }) },
+          ]}
+        />
+
+        <ActionQueueCard
+          title="Faculty leave requests" count={leaveReqs.length}
+          emptyText="No leave requests pending"
+          rows={leaveReqs}
+          renderRow={(r) => (
+            <div className="flex items-center gap-3">
+              <Avatar firstName={r.faculty.firstName} lastName={r.faculty.lastName} color={r.faculty.avatarColor} initials={r.faculty.initials} size="sm" />
+              <div>
+                <p className="text-sm font-medium">{r.faculty.firstName} {r.faculty.lastName}</p>
+                <p className="text-xs text-muted-foreground">{r.days} day{r.days !== 1 ? "s" : ""} · {r.reason}</p>
+              </div>
+            </div>
+          )}
+          actions={[
+            { label: "Approve", tone: "primary", onClick: (r) => setConfirmLeave(r) },
+            { label: "Reject", tone: "danger", onClick: (r) => { setLeaveReqs(q => q.filter(x => x.id !== r.id)); toast(`Leave declined`); } },
+          ]}
+        />
+
+        <ActionQueueCard
+          title="Student override requests" count={overrideReqs.length}
+          emptyText="No override requests"
+          rows={overrideReqs}
+          renderRow={(r) => (
+            <div>
+              <p className="text-sm font-medium">{r.student.firstName} {r.student.lastName} <span className="ml-1 text-xs font-normal text-muted-foreground">· {r.type}</span></p>
+            </div>
+          )}
+          actions={[
+            { label: "Forward to Exam Cell", tone: "primary", onClick: (r) => { setOverrideReqs(q => q.filter(x => x.id !== r.id)); toast.success(`Forwarded to Exam Cell with HOD recommendation`); } },
+            { label: "Reject", tone: "danger", onClick: (r) => { setOverrideReqs(q => q.filter(x => x.id !== r.id)); toast(`Request rejected`); } },
+          ]}
+        />
+
+        <Section title="Quick Actions">
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+            <QuickAction icon={Megaphone} label="Dept Announcement" tone="primary" href="/communication/announcements" />
+            <QuickAction icon={Calendar} label="View Timetable" href="/academic/timetable" />
+            <QuickAction icon={Users} label="Manage Faculty" href="/people/faculty" />
+            <QuickAction icon={FileBarChart} label="Dept Report" onClick={() => toast.success("Department report generated")} />
+          </div>
+        </Section>
+      </div>
+
+      <MultiChannelPreviewDialog
+        open={!!alertStudent} onOpenChange={(v) => !v && setAlertStudent(null)}
+        title={`Alert ${alertStudent?.firstName} & parent`}
+        subject="Attendance below threshold"
+        body={`Dear ${alertStudent?.firstName},\n\nYour attendance is below the required threshold of 75%. You may be debarred from exams. Please meet your HOD this week.\n\nRegards,\nHOD ${dept}`}
+        recipients={alertStudent ? [
+          { id: alertStudent.id, name: `${alertStudent.firstName} ${alertStudent.lastName}` },
+          ...users.filter(u => u.role === "parent" && u.childId === alertStudent.id).map(p => ({ id: p.id, name: `Parent of ${alertStudent.firstName}` })),
+        ] : []}
+        defaultChannels={["whatsapp","email"]}
+        onSend={() => toast.success("Alert sent to student & parent")} />
+      <ConfirmDialog open={!!confirmLeave} onOpenChange={(v) => !v && setConfirmLeave(null)}
+        title={`Approve ${confirmLeave?.days} day leave?`} description={`${confirmLeave?.faculty.firstName} ${confirmLeave?.faculty.lastName} · ${confirmLeave?.reason}`}
+        confirmLabel="Approve" withComment
+        onConfirm={() => { if (!confirmLeave) return; setLeaveReqs(q => q.filter(x => x.id !== confirmLeave.id)); toast.success(`Leave approved · substitute auto-suggested`); }} />
+    </>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// FACULTY (and Lab Faculty) — Daily organizer
+// ════════════════════════════════════════════════════════════════════════
+function FacultyDashboard({ isLab = false }: { isLab?: boolean }) {
+  const { user } = useAccess();
+  const users = useUsersStore(s => s.users);
+  const timetable = useAcademicStore(s => s.timetable);
+  const subjects = useAcademicStore(s => s.subjects);
+  const sections = useAcademicStore(s => s.sections);
+  const navigate = useNavigate();
+
+  const todaySlots = timetable.filter(t => t.facultyId === user!.id).slice(0, 4);
+  const [pendingMarks, setPendingMarks] = useState([
+    { id: "pm1", section: "CSE-A1", subject: "DBMS", exam: "Mid Sem 1", count: 20, deadline: "5 Jun" },
+    { id: "pm2", section: "CSE-A2", subject: "DBMS", exam: "Mid Sem 1", count: 20, deadline: "5 Jun" },
+  ]);
+  const [leaveReqs, setLeaveReqs] = useState([
+    { id: "lr1", student: users.find(u => u.role === "student")!, days: 2, reason: "Family function" },
+    { id: "lr2", student: users.filter(u => u.role === "student")[1]!, days: 1, reason: "Medical" },
+  ]);
+
+  const [confirmAtt, setConfirmAtt] = useState<typeof todaySlots[0] | null>(null);
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [leaveAppOpen, setLeaveAppOpen] = useState(false);
+
+  return (
+    <>
+      <DashboardHero user={user!} kpis={
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <KpiCard label="Today's Classes" value={todaySlots.length} icon={Calendar} tone="teal" />
+          <KpiCard label="Pending Marks Entry" value={pendingMarks.length} icon={ClipboardList} tone="amber" />
+          <KpiCard label="Leave Requests" value={leaveReqs.length} icon={Bell} />
+          <KpiCard label="Avg Section Att%" value="86%" icon={Activity} />
         </div>
       } />
 
       <Section title="Today's Schedule">
-        <Card className="p-4 space-y-2">
-          {todaysSchedule.length === 0
-            ? <EmptyState title="No classes today" body="Enjoy your day" icon={Calendar} />
-            : todaysSchedule.map((c, i) => (
-              <div key={i} className="flex items-center justify-between gap-3 rounded-lg border p-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-16 text-center"><div className="text-sm font-semibold text-lnx-navy-800 tabular">{c.time}</div></div>
+        <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+          {todaySlots.length === 0 ? (
+            <Card className="col-span-2 p-6"><EmptyState title="No classes today" body="Enjoy your day off" /></Card>
+          ) : todaySlots.map(slot => {
+            const sub = subjects.find(s => s.id === slot.subjectId);
+            const sec = sections.find(s => s.id === slot.sectionId);
+            return (
+              <Card key={slot.id} className="p-3">
+                <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-sm font-medium text-lnx-navy-800">{c.subject} <span className="text-xs font-normal text-muted-foreground">· {c.code}</span></div>
-                    <div className="text-xs text-muted-foreground">{c.section} · {c.room}</div>
+                    <p className="text-sm font-medium">{sub?.code} · {sub?.name}</p>
+                    <p className="text-xs text-muted-foreground">{sec?.name} · Slot {slot.slot + 1} · Room {slot.roomId}</p>
                   </div>
+                  <Button size="sm" onClick={() => setConfirmAtt(slot)} className="h-7 bg-lnx-teal-500 text-xs text-white hover:bg-lnx-teal-500/90">
+                    <CheckCircle2 className="mr-1 h-3 w-3" />Mark Attendance
+                  </Button>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant={c.status === "Marked" ? "outline" : c.status === "Pending mark" ? "destructive" : c.status === "In progress" ? "default" : "secondary"} className="text-[10px]">{c.status}</Badge>
-                  {c.status === "Pending mark" && <Button size="sm" asChild><Link to="/academic/attendance">Mark Now</Link></Button>}
-                </div>
-              </div>
-            ))}
-        </Card>
+              </Card>
+            );
+          })}
+        </div>
       </Section>
 
-      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Section title="Pending Marks Entry">
-          <Card className="p-4 space-y-2">
-            {["Mid-Sem · DBMS","Mid-Sem · AIML"].map(s => (
-              <div key={s} className="flex items-center justify-between border-t pt-2 first:border-0 first:pt-0">
-                <div className="text-xs"><div className="font-medium text-lnx-navy-800">{s}</div><div className="text-muted-foreground">CSE-A1 · due in 3 days</div></div>
-                <Button size="sm" variant="outline" asChild><Link to="/academic/examinations">Enter</Link></Button>
-              </div>
-            ))}
-          </Card>
-        </Section>
+      <div className="mt-4 space-y-4">
+        <ActionQueueCard
+          title="Pending marks entry" count={pendingMarks.length} badgeTone="amber"
+          emptyText="All marks entered"
+          rows={pendingMarks}
+          renderRow={(r) => (
+            <div>
+              <p className="text-sm font-medium">{r.subject} · {r.section} · {r.exam}</p>
+              <p className="text-xs text-muted-foreground">{r.count} students · deadline {r.deadline}</p>
+            </div>
+          )}
+          actions={[
+            { label: "Enter Marks", tone: "primary", icon: ClipboardList, onClick: (r) => { navigate({ to: "/academic/examinations" }); toast.info(`Opening ${r.subject} marks sheet`); } },
+            { label: "Request Lock", onClick: (r) => { setPendingMarks(q => q.filter(x => x.id !== r.id)); toast.success(`Lock request sent to Exam Cell · ${r.subject}`); } },
+          ]}
+        />
 
-        <Section title="My Student Snapshot">
-          <Card className="p-4 space-y-2 text-xs">
-            {[
-              { c: "CSE-A1 / DBMS", a: 78, m: 72, r: 3 },
-              { c: "CSE-A2 / DBMS", a: 81, m: 75, r: 1 },
-            ].map(r => (
-              <div key={r.c} className="rounded border p-2">
-                <div className="font-medium text-lnx-navy-800">{r.c}</div>
-                <div className="mt-1 flex justify-between text-muted-foreground tabular">
-                  <span>Att {r.a}%</span><span>Marks {r.m}%</span><span className="text-lnx-red-500">{r.r} at-risk</span>
-                </div>
+        <ActionQueueCard
+          title="Student leave requests" count={leaveReqs.length}
+          emptyText="No leave requests"
+          rows={leaveReqs}
+          renderRow={(r) => (
+            <div className="flex items-center gap-3">
+              <Avatar firstName={r.student.firstName} lastName={r.student.lastName} color={r.student.avatarColor} initials={r.student.initials} size="sm" />
+              <div>
+                <p className="text-sm font-medium">{r.student.firstName} {r.student.lastName}</p>
+                <p className="text-xs text-muted-foreground">{r.days} day{r.days !== 1 ? "s" : ""} · {r.reason}</p>
               </div>
-            ))}
-          </Card>
-        </Section>
+            </div>
+          )}
+          actions={[
+            { label: "Approve", tone: "primary", onClick: (r) => { setLeaveReqs(q => q.filter(x => x.id !== r.id)); toast.success(`Leave approved · ${r.student.firstName}`); } },
+            { label: "Reject", tone: "danger", onClick: (r) => { setLeaveReqs(q => q.filter(x => x.id !== r.id)); toast(`Leave rejected`); } },
+          ]}
+        />
 
-        <Section title="My Workload — This Week">
-          <Card className="p-4">
-            <div className="text-3xl font-semibold text-lnx-navy-800 tabular">18<span className="ml-1 text-sm font-normal text-muted-foreground">/ 22h</span></div>
-            <Progress value={(18/22)*100} className="mt-2 h-2" />
-            <div className="mt-2 text-xs text-muted-foreground">Under policy ceiling</div>
-          </Card>
+        <Section title="Quick Actions">
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
+            <QuickAction icon={CheckCircle2} label="Mark Today's Attendance" tone="primary" href="/academic/attendance" />
+            <QuickAction icon={ClipboardList} label="Enter Marks" href="/academic/examinations" />
+            <QuickAction icon={Upload} label="Upload Material" onClick={() => setUploadOpen(true)} />
+            <QuickAction icon={Calendar} label="Apply Leave" onClick={() => setLeaveAppOpen(true)} />
+            {isLab && <QuickAction icon={Settings} label="Configure Lab" onClick={() => toast.success("Lab settings drawer (demo)")} />}
+          </div>
         </Section>
       </div>
 
-      <Section title="Quick Actions" className="mt-6">
-        <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
-          <QuickAction icon={ClipboardList} label="Mark Attendance" href="/academic/attendance" tone="primary" />
-          <QuickAction icon={BookOpen} label="Upload Material" href="/academic/study-material" />
-          <QuickAction icon={ScrollText} label="Enter Internal Marks" href="/academic/examinations" />
-          <QuickAction icon={Calendar} label="Apply for Leave" onClick={() => toast.success("Leave application submitted to HOD")} />
-          <QuickAction icon={GitPullRequest} label="Raise Correction" onClick={() => toast.success("Correction request raised")} />
-        </div>
-      </Section>
+      <ConfirmDialog open={!!confirmAtt} onOpenChange={(v) => !v && setConfirmAtt(null)}
+        title="Open attendance sheet?"
+        description="You'll be taken to the attendance marking interface for this class."
+        confirmLabel="Open Sheet"
+        onConfirm={() => { navigate({ to: "/academic/attendance" }); toast.info("Opening attendance sheet"); }} />
+      <UploadMaterialDialog open={uploadOpen} onOpenChange={setUploadOpen} actorId={user!.id} />
+      <ProgressDialog open={leaveAppOpen} onOpenChange={setLeaveAppOpen}
+        title="Submitting Leave Application" durationMs={1500} successText="Leave application sent to HOD"
+        onComplete={() => toast.success("Leave submitted", { description: "HOD will be notified" })} />
     </>
   );
 }
 
+function UploadMaterialDialog({ open, onOpenChange, actorId }: { open: boolean; onOpenChange: (v: boolean) => void; actorId: string }) {
+  const [name, setName] = useState("Week 5 — Normalization.pdf");
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Upload Study Material</DialogTitle>
+          <DialogDescription>Students in your section will be notified.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div><Label className="text-xs">File name</Label><Input value={name} onChange={(e) => setName(e.target.value)} className="mt-1" /></div>
+          <div className="rounded-lg border-2 border-dashed p-6 text-center text-sm text-muted-foreground">
+            <Upload className="mx-auto mb-2 h-8 w-8" />
+            Drop file or click to upload (demo)
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button className="bg-lnx-teal-500 text-white hover:bg-lnx-teal-500/90" onClick={() => {
+            uploadMaterialCascade("CSE-A1", "CS301", name, actorId);
+            toast.success(`Uploaded · 20 students notified`);
+            onOpenChange(false);
+          }}>Upload</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ════════════════════════════════════════════════════════════════════════
-// LAB FACULTY — faculty + lab overlay
+// STUDENT — Mobile-first life hub
 // ════════════════════════════════════════════════════════════════════════
-function LabFacultyDashboard() {
+function StudentDashboard() {
   const { user } = useAccess();
+  const timetable = useAcademicStore(s => s.timetable);
+  const subjects = useAcademicStore(s => s.subjects);
+  const ledger = useFinanceStore(s => s.ledger);
+  const navigate = useNavigate();
+
+  const myLedger = ledger.filter(l => l.studentId === user!.id);
+  const balance = myLedger[0]?.balance ?? 60000;
+  const todaySlots = timetable.filter(t => t.sectionId === user!.sectionId).slice(0, 4);
+  const nextClass = todaySlots[0];
+  const nextSubject = subjects.find(s => s.id === nextClass?.subjectId);
+
+  const [drives] = useState(usePlacementStore.getState().drives.filter(d => d.status === "active" || d.status === "upcoming").slice(0, 3));
+  const [payOpen, setPayOpen] = useState(false);
+  const [applyOpen, setApplyOpen] = useState<typeof drives[0] | null>(null);
+
   return (
     <>
       <DashboardHero user={user!} kpis={
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-          <KpiCard label="Today's Classes" value={4} icon={Calendar} tone="teal" />
-          <KpiCard label="Today's Lab Sessions" value={2} icon={Activity} />
-          <KpiCard label="Pending Attendance" value={1} icon={ClipboardList} tone="amber" />
-          <KpiCard label="Active Coding Problems" value={6} icon={BookMarked} />
-          <KpiCard label="AI Tests Configured" value={3} icon={Bot} tone="teal" />
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <KpiCard label="Attendance" value={`${user!.attendancePct ?? 88}%`} icon={Activity} tone={(user!.attendancePct ?? 88) >= 75 ? "teal" : "amber"} />
+          <KpiCard label="CGPA" value={user!.cgpa ?? "8.2"} icon={Award} />
+          <KpiCard label="Fee Balance" value={inr(balance)} icon={Wallet} tone={balance > 0 ? "amber" : "teal"} />
+          <KpiCard label="Backlogs" value={user!.backlogs ?? 0} icon={ClipboardList} />
         </div>
       } />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Section title="Active Lab Sessions">
-          <Card className="p-4 space-y-3">
-            {[
-              { l: "DBMS Lab — CSE-A1", t: "10:00 · LAB-201", p: "18/20" },
-              { l: "OS Lab — CSE-A2", t: "14:00 · LAB-202", p: "—" },
-            ].map(s => (
-              <div key={s.l} className="flex items-center justify-between rounded-lg border p-3">
-                <div><div className="text-sm font-medium text-lnx-navy-800">{s.l}</div><div className="text-xs text-muted-foreground">{s.t} · Present {s.p}</div></div>
-                <Button size="sm" onClick={() => toast.success("Lab attendance marked")}>Mark Lab Attendance</Button>
-              </div>
-            ))}
-          </Card>
-        </Section>
-
-        <Section title="Coding Problems Assigned">
-          <Card className="p-0">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/40 text-xs text-muted-foreground"><tr><th className="px-3 py-2 text-left">Problem</th><th className="px-3 py-2 text-left">Submissions</th><th className="px-3 py-2"></th></tr></thead>
-              <tbody>
-                {["Two Sum Variants","SQL Joins Pset","Process Scheduling Sim","Linked List Reversal"].map((p, i) => (
-                  <tr key={p} className="border-t">
-                    <td className="px-3 py-2 text-sm">{p}</td>
-                    <td className="px-3 py-2 text-xs tabular">{[18, 14, 9, 16][i]} / 20</td>
-                    <td className="px-3 py-2 text-right"><Button size="sm" variant="outline" onClick={() => toast.info("Submissions opened")}>View</Button></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </Card>
-        </Section>
-      </div>
-
-      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Section title="Coding Lab Activity — 7 days">
-          <Card className="p-4">
-            <BarMini labels={["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]} drives={[8,12,9,14,11,4,3]} offers={[]} />
-          </Card>
-        </Section>
-        <Section title="Lab Equipment Status">
-          <Card className="p-4 space-y-2 text-xs">
-            {[
-              { e: "LAB-201 · 30 workstations", s: "OK" },
-              { e: "LAB-202 · 28 workstations", s: "OK · 2 in repair" },
-              { e: "Network printer", s: "Toner low" },
-            ].map(r => (
-              <div key={r.e} className="flex justify-between border-t pt-2 first:border-0 first:pt-0">
-                <span className="text-lnx-navy-800">{r.e}</span><span className="text-muted-foreground">{r.s}</span>
-              </div>
-            ))}
-          </Card>
-        </Section>
-      </div>
-
-      <Section title="Quick Actions" className="mt-6">
-        <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
-          <QuickAction icon={Activity} label="Mark Lab Attendance" onClick={() => toast.success("Lab attendance saved")} tone="primary" />
-          <QuickAction icon={Plus} label="Assign Coding Problem" onClick={() => toast.success("Problem assigned")} />
-          <QuickAction icon={Bot} label="Configure AI Test" href="/placement/ai-assessments" />
-          <QuickAction icon={ClipboardList} label="Mark Theory Attendance" href="/academic/attendance" />
-          <QuickAction icon={BookOpen} label="Upload Material" href="/academic/study-material" />
-        </div>
-      </Section>
-    </>
-  );
-}
-
-// ════════════════════════════════════════════════════════════════════════
-// STUDENT — self-service hub
-// ════════════════════════════════════════════════════════════════════════
-function StudentDashboard() {
-  const { user } = useAccess();
-  const academic = useAcademicStore();
-  const drives = usePlacementStore(s => s.drives).filter(d => d.branches.includes(user?.department ?? "") && d.status !== "completed");
-  const att = user?.attendancePct ?? 0;
-  const sub = academic.subjects;
-
-  const nextClass = {
-    subject: "DBMS", faculty: "Prof. Anjali Sharma", room: "LH-101", inMin: 22,
-  };
-
-  const subjectAtt = [
-    { s: "DBMS", v: 78 }, { s: "OS", v: 72 }, { s: "Maths III", v: 81 }, { s: "AIML", v: 65 }, { s: "CN", v: 88 },
-  ];
-
-  return (
-    <>
-      <DashboardHero user={user!}
-        intro={<div className="mt-1 text-sm text-muted-foreground">{user?.rollNo} · {user?.department} · Sem 5 · CGPA <strong className="tabular text-lnx-navy-800">{user?.cgpa}</strong></div>}
-        kpis={
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <KpiCard label="Cumulative CGPA" value={user?.cgpa ?? "—"} icon={Award} tone="teal" delta={{ value: "↑ 0.3", up: true }} />
-            <KpiCard label="Today's Classes" value={5} icon={Calendar} />
-            <KpiCard label="Attendance" value={`${att}%`} icon={ClipboardList} tone={att >= 75 ? "green" : att >= 65 ? "amber" : "red"} />
-            <KpiCard label="Fee Due" value="₹60,000" icon={Wallet} tone="amber" delta={{ value: "due in 12 days", up: false }} />
-          </div>
-        } />
-
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Card className="bg-gradient-to-br from-lnx-teal-500/10 to-lnx-navy-800/5 p-5 lg:col-span-2">
-          <div className="text-xs uppercase tracking-wide text-muted-foreground">Next Class · starts in</div>
-          <div className="mt-1 text-4xl font-bold text-lnx-navy-800 tabular">{nextClass.inMin}<span className="ml-1 text-base font-normal text-muted-foreground">min</span></div>
-          <div className="mt-2 text-base font-semibold text-lnx-navy-800">{nextClass.subject}</div>
-          <div className="text-sm text-muted-foreground">{nextClass.faculty} · Room {nextClass.room}</div>
+        <Card className="p-4">
+          <h3 className="mb-3 text-sm font-semibold">Next Class</h3>
+          {nextClass && nextSubject ? (
+            <div>
+              <p className="text-base font-semibold text-lnx-navy-800">{nextSubject.code} · {nextSubject.name}</p>
+              <p className="text-xs text-muted-foreground">Room {nextClass.roomId} · Slot {nextClass.slot + 1}</p>
+              <Button size="sm" variant="outline" className="mt-3 w-full" onClick={() => navigate({ to: "/academic/timetable" })}>View Full Timetable</Button>
+            </div>
+          ) : <EmptyState title="No more classes today" />}
         </Card>
 
         <Card className="p-4">
-          <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Fee Due Alert</div>
-          <div className="text-2xl font-bold text-lnx-navy-800 tabular">₹60,000</div>
-          <div className="text-xs text-muted-foreground">Sem 5 · Instalment 2 · due in 12 days</div>
-          <Button className="mt-3 w-full" asChild><Link to="/my/fees">Pay Now</Link></Button>
-        </Card>
-      </div>
-
-      <Section title="Today's Timetable" className="mt-4">
-        <Card className="overflow-x-auto p-4">
-          <div className="flex gap-2">
-            {[
-              { t: "09:00", s: "DBMS", st: "Done" },
-              { t: "10:00", s: "OS", st: "Live" },
-              { t: "11:15", s: "Maths III", st: "Upcoming" },
-              { t: "12:15", s: "AIML Lab", st: "Upcoming" },
-              { t: "02:00", s: "CN", st: "Upcoming" },
-            ].map((c, i) => (
-              <div key={i} className="min-w-[140px] rounded-lg border p-3">
-                <div className="text-xs text-muted-foreground tabular">{c.t}</div>
-                <div className="text-sm font-medium text-lnx-navy-800">{c.s}</div>
-                <Badge variant={c.st === "Live" ? "default" : c.st === "Done" ? "outline" : "secondary"} className="mt-1.5 text-[10px]">{c.st}</Badge>
-              </div>
-            ))}
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="text-sm font-semibold">Fee Status</h3>
+            <Badge variant="outline" className={balance > 0 ? "border-lnx-amber-500/40 text-lnx-amber-500" : "border-lnx-green-500/40 text-lnx-green-500"}>
+              {balance > 0 ? `${inr(balance)} due` : "All clear"}
+            </Badge>
           </div>
+          <div className="space-y-2">
+            <Progress value={balance > 0 ? 60 : 100} />
+            <p className="text-xs text-muted-foreground">Sem 5 Installment 2 · Due 15 Jun 2026</p>
+          </div>
+          {balance > 0 && (
+            <Button size="sm" className="mt-3 w-full bg-lnx-teal-500 text-white hover:bg-lnx-teal-500/90" onClick={() => setPayOpen(true)}>
+              <CreditCard className="mr-1 h-3.5 w-3.5" />Pay {inr(balance)}
+            </Button>
+          )}
         </Card>
-      </Section>
-
-      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Section title="Active AI Assessments">
-          <Card className="p-4 space-y-3">
-            {drives.slice(0, 2).map(d => (
-              <div key={d.id} className="flex items-center justify-between rounded-lg border p-3">
-                <div><div className="text-sm font-medium text-lnx-navy-800">{d.role} MCQ</div><div className="text-xs text-muted-foreground">30 questions · 45 min</div></div>
-                <Button size="sm" asChild><Link to="/placement/ai-assessments">Take Now</Link></Button>
-              </div>
-            ))}
-          </Card>
-        </Section>
-
-        <Section title="Attendance by Subject">
-          <Card className="p-4 flex flex-wrap gap-2">
-            {subjectAtt.map(s => {
-              const tone = s.v >= 75 ? "bg-emerald-100 text-emerald-700" : s.v >= 65 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700";
-              return <span key={s.s} className={`rounded-full px-3 py-1 text-xs font-medium ${tone} tabular`}>{s.s} {s.v}%</span>;
-            })}
-          </Card>
-        </Section>
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Section title="Recent Results">
-          <Card className="p-4">
-            <div className="text-sm font-medium text-lnx-navy-800">Semester 4 · 2024-25</div>
-            <div className="mt-1 text-2xl font-bold text-lnx-teal-500 tabular">SGPA 8.2</div>
-            <Button size="sm" variant="outline" className="mt-3" asChild><Link to="/my/results">View Grade Card</Link></Button>
-          </Card>
-        </Section>
-        <Section title="Recent Study Material">
-          <Card className="p-4 space-y-2 text-xs">
-            {["DBMS · Unit 3 Normalization","OS · Process Sync Notes","AIML · Decision Trees PDF","CN · OSI Layers slides"].map(m => (
-              <div key={m} className="flex items-center justify-between border-t pt-2 first:border-0 first:pt-0">
-                <span className="text-lnx-navy-800">{m}</span>
-                <Button size="sm" variant="ghost" className="h-6 text-[11px]" onClick={() => toast.success("Download started")}>Download</Button>
-              </div>
-            ))}
-          </Card>
-        </Section>
-      </div>
+      <ActionQueueCard
+        title="Drives open for you" count={drives.length} badgeTone="muted"
+        emptyText="No drives open right now"
+        rows={drives}
+        renderRow={(d) => {
+          const co = usePlacementStore.getState().companies.find(c => c.id === d.companyId);
+          return (
+            <div>
+              <p className="text-sm font-medium">{co?.name} · <span className="text-xs font-normal text-muted-foreground">{d.role}</span></p>
+              <p className="text-xs text-muted-foreground">{d.package} · CGPA cutoff {d.cgpaCutoff} · Closes {format(new Date(d.endDate), "dd MMM")}</p>
+            </div>
+          );
+        }}
+        actions={[
+          { label: "Apply", tone: "primary", onClick: (d) => setApplyOpen(d) },
+          { label: "View Details", onClick: (d) => navigate({ to: `/placement/drives/${d.id}` }) },
+        ]}
+      />
 
-      <Section title="Quick Actions" className="mt-6">
+      <Section title="Quick Actions" className="mt-4">
         <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
-          <QuickAction icon={Wallet} label="Pay Fees" href="/my/fees" tone="primary" />
-          <QuickAction icon={Calendar} label="Apply for Leave" onClick={() => toast.success("Leave application submitted")} />
-          <QuickAction icon={Award} label="Apply for Scholarship" onClick={() => toast.success("Scholarship form opened")} />
-          <QuickAction icon={FileText} label="Request Bonafide" onClick={() => toast.success("Bonafide request raised")} />
-          <QuickAction icon={ScrollText} label="My Hall Ticket" onClick={() => toast.success("Hall ticket downloaded")} />
+          <QuickAction icon={CreditCard} label="Pay Fees" tone="primary" onClick={() => setPayOpen(true)} />
+          <QuickAction icon={Bot} label="Take AI Assessment" href="/placement/ai-assessments" />
+          <QuickAction icon={Award} label="View Results" href="/my/results" />
+          <QuickAction icon={FileText} label="Request Certificate" onClick={() => toast.success("Certificate request submitted")} />
+          <QuickAction icon={BookOpen} label="Study Material" href="/academic/study-material" />
         </div>
       </Section>
+
+      <RazorpayMock open={payOpen} onOpenChange={setPayOpen}
+        amount={balance} orderId={`ord_${Date.now().toString(36)}`}
+        description="Sem 5 Installment 2"
+        onSuccess={(mode, txnId) => { payFeeCascade(user!.id, balance, mode, user!.id); toast.success("Payment received", { description: `${mode} · ${txnId}` }); }} />
+      <ConfirmDialog open={!!applyOpen} onOpenChange={(v) => !v && setApplyOpen(null)}
+        title={`Apply to ${usePlacementStore.getState().companies.find(c => c.id === applyOpen?.companyId)?.name}?`}
+        description={`Your profile and resume will be submitted. You'll be notified about MCQ test schedule.`}
+        confirmLabel="Confirm Application"
+        onConfirm={() => { toast.success("Applied successfully · MCQ test scheduled for tomorrow"); }} />
     </>
   );
 }
 
 // ════════════════════════════════════════════════════════════════════════
-// PARENT — single child focus
+// PARENT — Single-child monitor
 // ════════════════════════════════════════════════════════════════════════
 function ParentDashboard() {
   const { user } = useAccess();
-  const child = useUsersStore(s => s.users.find(u => u.id === user?.childId));
-  const notifs = useCommStore(s => s.notifications).filter(n => n.userId === user?.id).slice(0, 4);
-  const attendance = useAcademicStore(s => s.attendance);
+  const users = useUsersStore(s => s.users);
+  const child = users.find(u => u.id === user!.childId);
+  const ledger = useFinanceStore(s => s.ledger);
+  const navigate = useNavigate();
 
-  const todayStatus = useMemo(() => {
-    const today = new Date().toISOString().slice(0, 10);
-    const todays = attendance.filter(a => a.date === today && child && a.marks[child.id]);
-    if (!todays.length) return { status: "no_class", label: "No classes scheduled today" };
-    const lastMark = todays[0].marks[child!.id];
-    if (lastMark === "A") return { status: "absent", label: `Was absent in last class` };
-    return { status: "present", label: "In class right now · DBMS · Room 304" };
-  }, [attendance, child]);
+  const childLedger = child ? ledger.filter(l => l.studentId === child.id) : [];
+  const balance = childLedger[0]?.balance ?? 60000;
 
-  const [wa, setWa] = [true, () => {}];
+  const [payOpen, setPayOpen] = useState(false);
+  const [waOptOpen, setWaOptOpen] = useState(true);
+  const [messageOpen, setMessageOpen] = useState(false);
 
-  if (!child) return <EmptyState title="No child linked" body="Contact registrar to link your child's account" icon={Users} />;
+  if (!child) return <GenericDashboard />;
 
   return (
     <>
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight text-lnx-navy-800">Welcome, Mr. {user?.lastName}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">{format(new Date(), "EEEE, dd MMM yyyy")}</p>
-      </div>
-
-      <Card className="mb-5 flex items-center gap-4 p-4">
-        <Avatar firstName={"${child.firstName} ${child.lastName}".split(" ")[0]} lastName={"${child.firstName} ${child.lastName}".split(" ")[1]} color={child.avatarColor} size="lg" />
-        <div className="flex-1">
-          <div className="text-lg font-semibold text-lnx-navy-800">{child.firstName} {child.lastName}</div>
-          <div className="text-xs text-muted-foreground">{child.rollNo} · {child.department} · Sem 5 · Batch {child.batch}</div>
+      <DashboardHero user={user!} kpis={
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <KpiCard label="Attendance" value={`${child.attendancePct ?? 86}%`} icon={Activity} tone={(child.attendancePct ?? 86) >= 75 ? "teal" : "amber"} />
+          <KpiCard label="CGPA" value={child.cgpa ?? "8.2"} icon={Award} />
+          <KpiCard label="Fee Balance" value={inr(balance)} icon={Wallet} tone={balance > 0 ? "amber" : "teal"} />
+          <KpiCard label="Notifications" value="3" icon={Bell} />
         </div>
-      </Card>
+      } />
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <KpiCard label="Today's Status"
-          value={todayStatus.status === "present" ? "Present" : todayStatus.status === "absent" ? "Absent" : "—"}
-          icon={Activity}
-          tone={todayStatus.status === "present" ? "green" : todayStatus.status === "absent" ? "red" : "default"} />
-        <KpiCard label="Cumulative CGPA" value={child.cgpa ?? "—"} icon={Award} tone="teal" />
-        <KpiCard label="Overall Attendance" value={`${child.attendancePct}%`} icon={ClipboardList} tone={(child.attendancePct ?? 0) >= 75 ? "green" : "amber"} />
-        <KpiCard label="Fee Due" value="₹60,000" icon={Wallet} tone="red" />
-      </div>
-
-      <Card className={`mt-5 p-4 ${todayStatus.status === "absent" ? "border-lnx-red-500/40 bg-lnx-red-500/5" : todayStatus.status === "present" ? "border-lnx-green-500/40 bg-lnx-green-500/5" : ""}`}>
-        <div className="flex items-center gap-3">
-          <div className={`flex h-10 w-10 items-center justify-center rounded-full ${todayStatus.status === "absent" ? "bg-lnx-red-500/20 text-lnx-red-500" : "bg-lnx-green-500/20 text-lnx-green-500"}`}>
-            <Activity className="h-5 w-5" />
-          </div>
+      <Card className="p-4 mb-4">
+        <div className="flex items-center gap-4">
+          <Avatar firstName={child.firstName} lastName={child.lastName} color={child.avatarColor} initials={child.initials} size="lg" />
           <div className="flex-1">
-            <div className="text-sm font-semibold text-lnx-navy-800">{child.firstName} {todayStatus.label}</div>
-            <div className="text-xs text-muted-foreground">Updated {format(new Date(), "h:mm a")}</div>
+            <p className="text-lg font-semibold text-lnx-navy-800">{child.firstName} {child.lastName}</p>
+            <p className="text-xs text-muted-foreground">{child.sectionId} · {child.rollNo ?? child.id}</p>
           </div>
-          <Button variant="outline" size="sm" asChild><Link to="/dashboard">View attendance</Link></Button>
+          <div className="flex flex-wrap gap-1">
+            <span className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium ${(child.attendancePct ?? 86) >= 85 ? "bg-lnx-green-500/10 text-lnx-green-500" : "bg-lnx-amber-500/10 text-lnx-amber-500"}`}>
+              <span className="inline-block h-2 w-2 rounded-full bg-current" />Attendance OK
+            </span>
+            <span className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium ${(child.cgpa ?? 8) >= 7.5 ? "bg-lnx-green-500/10 text-lnx-green-500" : "bg-lnx-amber-500/10 text-lnx-amber-500"}`}>
+              <span className="inline-block h-2 w-2 rounded-full bg-current" />Academics OK
+            </span>
+            <span className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium ${balance === 0 ? "bg-lnx-green-500/10 text-lnx-green-500" : "bg-lnx-amber-500/10 text-lnx-amber-500"}`}>
+              <span className="inline-block h-2 w-2 rounded-full bg-current" />{balance > 0 ? "Fees pending" : "Fees clear"}
+            </span>
+          </div>
         </div>
       </Card>
 
-      <Card className="mt-4 flex items-center justify-between gap-3 border-lnx-amber-500/40 bg-lnx-amber-500/5 p-4">
-        <div>
-          <div className="text-sm font-semibold text-lnx-navy-800">Fee due ₹60,000 · {child.firstName}</div>
-          <div className="text-xs text-muted-foreground">Sem 5 · Instalment 2 · due in 12 days</div>
-        </div>
-        <Button onClick={() => { payFeeCascade(child.id, 60000, "Razorpay UPI", user!.id); toast.success("Payment successful · ₹60,000"); }}><CreditCard className="mr-1.5 h-4 w-4" />Pay on Behalf</Button>
-      </Card>
-
-      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Section title="30-day Attendance" className="lg:col-span-2">
-          <Card className="p-4">
-            <LineMini values={Array.from({ length: 30 }, (_, i) => 60 + ((i * 11 + 7) % 35))} threshold={75} />
-            <div className="mt-2 flex justify-between text-xs text-muted-foreground">
-              <span>30d ago</span><span className="tabular">Today · {child.attendancePct}%</span>
-            </div>
-          </Card>
-        </Section>
-
-        <Section title="Subject-wise Attendance">
-          <Card className="p-4 flex flex-wrap gap-2">
-            {[{s:"DBMS",v:78},{s:"OS",v:72},{s:"Maths",v:81},{s:"AIML",v:65}].map(s => {
-              const tone = s.v >= 75 ? "bg-emerald-100 text-emerald-700" : s.v >= 65 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700";
-              return <span key={s.s} className={`rounded-full px-3 py-1 text-xs font-medium ${tone} tabular`}>{s.s} {s.v}%</span>;
-            })}
-          </Card>
-        </Section>
-      </div>
-
-      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Section title="Recent Results">
-          <Card className="p-4">
-            <div className="text-sm font-medium text-lnx-navy-800">Semester 4 · 2024-25</div>
-            <div className="mt-1 text-2xl font-bold text-lnx-teal-500 tabular">SGPA 8.2</div>
-            <Button size="sm" variant="outline" className="mt-3" onClick={() => toast.success("Grade card PDF downloaded")}>Download Grade Card</Button>
-          </Card>
-        </Section>
-
-        <Section title="Messages & WhatsApp">
-          <Card className="p-4">
-            <div className="mb-3 space-y-1 text-xs">
-              {notifs.length === 0 && <div className="text-muted-foreground">No new messages</div>}
-              {notifs.map(n => <div key={n.id} className="border-t pt-1.5 first:border-0 first:pt-0"><div className="font-medium text-lnx-navy-800">{n.title}</div><div className="text-muted-foreground">{n.meta}</div></div>)}
-            </div>
-            <div className="flex items-center justify-between border-t pt-3">
-              <div className="text-xs"><div className="font-medium text-lnx-navy-800">WhatsApp Alerts</div><div className="text-muted-foreground">Get instant updates</div></div>
-              <Switch defaultChecked />
-            </div>
-          </Card>
-        </Section>
-      </div>
-
-      <Section title="Quick Actions" className="mt-6">
-        <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
-          <QuickAction icon={CreditCard} label={`Pay ${child.firstName}'s Fees`} href="/my/fees" tone="primary" />
-          <QuickAction icon={MessageSquare} label="Message Faculty" href="/communication/inbox" />
-          <QuickAction icon={Phone} label="Message TPO" href="/communication/inbox" />
-          <QuickAction icon={FileText} label="View Documents" onClick={() => toast.info("Documents opened")} />
-          <QuickAction icon={Bell} label="Enable WhatsApp Alerts" onClick={() => toast.success("WhatsApp alerts enabled")} />
+      <Section title="Quick Actions">
+        <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+          {balance > 0 && <QuickAction icon={CreditCard} label={`Pay ${inr(balance)} on behalf`} tone="primary" onClick={() => setPayOpen(true)} />}
+          <QuickAction icon={Award} label="View Results" href="/my/results" />
+          <QuickAction icon={MessageSquare} label="Message Faculty" onClick={() => setMessageOpen(true)} />
+          <QuickAction icon={Phone} label="Enable WhatsApp Alerts" onClick={() => setWaOptOpen(true)} />
         </div>
       </Section>
+
+      <RazorpayMock open={payOpen} onOpenChange={setPayOpen}
+        amount={balance} orderId={`ord_${Date.now().toString(36)}`}
+        description={`Fee for ${child.firstName} ${child.lastName}`}
+        onSuccess={(mode, txnId) => { payFeeCascade(child.id, balance, mode, user!.id); toast.success("Payment successful", { description: `${mode} · ${txnId}` }); }} />
+      <ConfirmDialog open={waOptOpen} onOpenChange={setWaOptOpen}
+        title="Enable WhatsApp alerts?"
+        description="Get attendance, fee, and result updates on +91 98XXX XX489. You can disable any time."
+        confirmLabel="Enable"
+        onConfirm={() => { optInWhatsappCascade(user!.id); toast.success("WhatsApp alerts enabled"); }} />
+      <Dialog open={messageOpen} onOpenChange={setMessageOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Message Faculty / HOD</DialogTitle>
+            <DialogDescription>Sent to the class teacher for {child.firstName}</DialogDescription>
+          </DialogHeader>
+          <Textarea rows={4} placeholder="Type your message…" />
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setMessageOpen(false)}>Cancel</Button>
+            <Button className="bg-lnx-teal-500 text-white hover:bg-lnx-teal-500/90" onClick={() => { toast.success("Message sent to faculty"); setMessageOpen(false); }}>Send</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
 
 // ════════════════════════════════════════════════════════════════════════
-// Generic fallback
+// GENERIC fallback (clerk, timetable_coord, unknown)
 // ════════════════════════════════════════════════════════════════════════
 function GenericDashboard() {
   const { user } = useAccess();
   return (
-    <div>
+    <>
       <DashboardHero user={user!} kpis={
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          <KpiCard label="Open Tasks" value={4} icon={ListChecks} />
-          <KpiCard label="Notifications" value={2} icon={Bell} />
-          <KpiCard label="Messages" value={3} icon={MessageSquare} />
-          <KpiCard label="Approvals" value={1} icon={CheckCircle2} />
+          <KpiCard label="Open Tasks" value="6" icon={ClipboardList} tone="teal" />
+          <KpiCard label="Today's Schedule" value="—" icon={Calendar} />
+          <KpiCard label="Notifications" value="3" icon={Bell} />
+          <KpiCard label="Profile" value="OK" icon={ShieldCheck} />
         </div>
       } />
-      <Card className="p-6 text-sm text-muted-foreground">{ROLE_LABEL[user!.role]} workspace — use the sidebar to navigate.</Card>
-    </div>
+      <EmptyState title="Workbench coming soon" body={`A role-specific dashboard for ${ROLE_LABEL[user!.role]} will land next. For now, use the sidebar to access your modules.`} />
+    </>
   );
 }
 
-// ════════════════════════════════════════════════════════════════════════
-// Visual primitives
-// ════════════════════════════════════════════════════════════════════════
-function RiskRow({ icon: Icon, tone, label, sub, to }: { icon: any; tone: "red" | "amber" | "green"; label: string; sub: string; to: string }) {
-  const colors = { red: "text-lnx-red-500", amber: "text-lnx-amber-500", green: "text-lnx-green-500" };
-  return (
-    <Link to={to} className="flex items-center gap-3 rounded-md border p-2 hover:border-lnx-teal-500">
-      <Icon className={`h-4 w-4 shrink-0 ${colors[tone]}`} />
-      <div className="min-w-0 flex-1">
-        <div className="truncate text-xs font-medium text-lnx-navy-800">{label}</div>
-        <div className="truncate text-[10px] text-muted-foreground">{sub}</div>
-      </div>
-    </Link>
-  );
-}
-
-function RagChip({ tone }: { tone: "red" | "amber" | "green" }) {
-  const cls = { red: "bg-red-100 text-red-700", amber: "bg-amber-100 text-amber-700", green: "bg-emerald-100 text-emerald-700" };
-  return <span className={`inline-block h-5 w-5 rounded-full ${cls[tone]}`} />;
-}
-
-function Funnel({ rows }: { rows: { label: string; value: number; pct: number }[] }) {
-  return (
-    <div className="space-y-1.5">
-      {rows.map(r => (
-        <div key={r.label} className="flex items-center gap-2">
-          <div className="w-24 truncate text-xs text-lnx-navy-800">{r.label}</div>
-          <div className="relative h-6 flex-1 rounded bg-muted">
-            <div className="h-full rounded bg-gradient-to-r from-lnx-teal-500 to-lnx-navy-800" style={{ width: `${r.pct}%` }} />
-            <div className="absolute inset-0 flex items-center justify-end pr-2 text-[10px] font-semibold text-white tabular">{r.value} · {r.pct}%</div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function DonutMini({ value, tone }: { value: number; tone: "green" | "amber" | "red" | "teal" }) {
-  const color = { green: "stroke-emerald-500", amber: "stroke-amber-500", red: "stroke-red-500", teal: "stroke-lnx-teal-500" }[tone];
-  const c = 2 * Math.PI * 24;
-  return (
-    <div className="relative inline-block">
-      <svg width="64" height="64" viewBox="0 0 64 64">
-        <circle cx="32" cy="32" r="24" fill="none" stroke="currentColor" className="text-muted opacity-20" strokeWidth="6" />
-        <circle cx="32" cy="32" r="24" fill="none" className={color} strokeWidth="6" strokeDasharray={c} strokeDashoffset={c * (1 - value / 100)} strokeLinecap="round" transform="rotate(-90 32 32)" />
-      </svg>
-      <div className="absolute inset-0 flex items-center justify-center text-sm font-semibold text-lnx-navy-800 tabular">{value}%</div>
-    </div>
-  );
-}
-
-function BarMini({ labels, drives, offers }: { labels: string[]; drives: number[]; offers: number[] }) {
-  const max = Math.max(...drives, ...offers, 1);
-  return (
-    <div className="flex items-end gap-2 h-32">
-      {labels.map((l, i) => (
-        <div key={l} className="flex flex-1 flex-col items-center gap-0.5">
-          <div className="flex w-full items-end justify-center gap-0.5" style={{ height: "100%" }}>
-            <div className="w-2 rounded-t bg-lnx-teal-500" style={{ height: `${(drives[i] / max) * 100}%` }} />
-            {offers.length > 0 && <div className="w-2 rounded-t bg-lnx-navy-800" style={{ height: `${(offers[i] / max) * 100}%` }} />}
-          </div>
-          <div className="text-[10px] text-muted-foreground">{l}</div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function LineMini({ values, threshold }: { values: number[]; threshold?: number }) {
-  const w = 600, h = 80, max = 100, min = 0;
-  const points = values.map((v, i) => `${(i / (values.length - 1)) * w},${h - ((v - min) / (max - min)) * h}`).join(" ");
-  const thresholdY = threshold ? h - ((threshold - min) / (max - min)) * h : 0;
-  return (
-    <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-20">
-      {threshold && <line x1="0" x2={w} y1={thresholdY} y2={thresholdY} className="stroke-lnx-red-500" strokeDasharray="4 3" strokeWidth="1" opacity="0.5" />}
-      <polyline points={points} fill="none" className="stroke-lnx-teal-500" strokeWidth="2" />
-      <polygon points={`0,${h} ${points} ${w},${h}`} className="fill-lnx-teal-500" opacity="0.1" />
-    </svg>
-  );
-}
+// ─── Local imports for the embedded dialogs ──────────────────────────────
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
