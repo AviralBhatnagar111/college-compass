@@ -25,7 +25,7 @@ export const seedDepartments: Department[] = [
   { id: "ME",  name: "Mechanical Engineering",       hodId: "u_hod_me",  programs: ["P_ME"] },
   { id: "CIVIL", name: "Civil Engineering",           hodId: "u_hod_civil", programs: ["P_CIVIL"] },
   { id: "BIOTECH", name: "Biotechnology",             hodId: "u_hod_bio", programs: ["P_BIOTECH"] },
-  { id: "MBA", name: "Management Studies",            programs: ["P_MBA"] },
+  { id: "MBA", name: "Management Studies",            hodId: "u_hod_mba", programs: ["P_MBA"] },
 ];
 
 export const seedPrograms: Program[] = [
@@ -44,6 +44,7 @@ export const seedSections: Section[] = [
   { id: "ME-C1",  name: "ME-C1",  programId: "P_ME", batch: "2023-27", strength: 25 },
   { id: "CIVIL-D1", name: "CIVIL-D1", programId: "P_CIVIL", batch: "2023-27", strength: 25 },
   { id: "BIO-E1", name: "BIO-E1", programId: "P_BIOTECH", batch: "2023-27", strength: 20 },
+  { id: "MBA-F1", name: "MBA-F1", programId: "P_MBA", batch: "2025-27", strength: 0 },
 ];
 
 export const seedSubjects: Subject[] = [
@@ -57,6 +58,8 @@ export const seedSubjects: Subject[] = [
   { id: "SUB_THERMO", code: "ME301", name: "Thermodynamics", departmentId: "ME", credits: 4, ltp: "3-1-0", semester: 5 },
   { id: "SUB_STRUCT", code: "CE301", name: "Structural Analysis", departmentId: "CIVIL", credits: 4, ltp: "3-1-0", semester: 5 },
   { id: "SUB_GEN", code: "BT301", name: "Genetics", departmentId: "BIOTECH", credits: 3, ltp: "3-0-0", semester: 5 },
+  { id: "SUB_MKT", code: "MBA301", name: "Marketing Management", departmentId: "MBA", credits: 3, ltp: "3-0-0", semester: 1 },
+  { id: "SUB_FIN", code: "MBA302", name: "Financial Management", departmentId: "MBA", credits: 3, ltp: "3-0-0", semester: 1 },
 ];
 
 export const seedRooms: Room[] = [
@@ -111,6 +114,7 @@ export const seedHods: User[] = [
     editedByAdmin: true }),
   mkUser({ id: "u_hod_civil", firstName: "Sunita", lastName: "Reddy", role: "hod", designation: "HOD CIVIL", department: "CIVIL", packId: "hod_core", scope: { level: "department", ids: ["CIVIL"] } }),
   mkUser({ id: "u_hod_bio", firstName: "Sneha", lastName: "Patil", role: "hod", designation: "HOD BIOTECH", department: "BIOTECH", packId: "hod_core", scope: { level: "department", ids: ["BIOTECH"] } }),
+  mkUser({ id: "u_hod_mba", firstName: "Rajeev", lastName: "Khanna", role: "hod", designation: "HOD MBA", department: "MBA", packId: "hod_core", scope: { level: "department", ids: ["MBA"] } }),
 ];
 
 export const seedFaculty: User[] = [
@@ -288,30 +292,39 @@ export const seedOffers: Offer[] = [
 
 // ─── Finance ─────────────────────────────────────────────────────────────
 export const seedFeeStructures: FeeStructure[] = [
-  { id: "FS_BTECH_CSE_25", name: "B.Tech CSE 2025-26", programId: "P_CSE", batch: "2025-29", total: 120000, installments: [{ label: "Installment 1", amount: 60000, dueDate: daysAhead(15) }, { label: "Installment 2", amount: 60000, dueDate: daysAhead(180) }], assignedCount: 80 },
-  { id: "FS_BTECH_ECE_25", name: "B.Tech ECE 2025-26", programId: "P_ECE", batch: "2025-29", total: 110000, installments: [{ label: "Installment 1", amount: 55000, dueDate: daysAhead(15) }, { label: "Installment 2", amount: 55000, dueDate: daysAhead(180) }], assignedCount: 60 },
-  { id: "FS_MBA_25", name: "MBA 2025-27", programId: "P_MBA", batch: "2025-27", total: 180000, installments: [{ label: "Installment 1", amount: 90000, dueDate: daysAhead(10) }, { label: "Installment 2", amount: 90000, dueDate: daysAhead(180) }], assignedCount: 40 },
+  { id: "FS_BTECH_CSE_25", name: "B.Tech CSE 2025-26", programId: "P_CSE", batch: "2025-29", total: 120000, installments: [{ label: "Installment 1", amount: 60000, dueDate: daysAhead(15) }, { label: "Installment 2", amount: 60000, dueDate: daysAhead(180) }], assignedCount: 40 },
+  { id: "FS_BTECH_ECE_25", name: "B.Tech ECE 2025-26", programId: "P_ECE", batch: "2025-29", total: 110000, installments: [{ label: "Installment 1", amount: 55000, dueDate: daysAhead(15) }, { label: "Installment 2", amount: 55000, dueDate: daysAhead(180) }], assignedCount: 30 },
+  { id: "FS_BTECH_ME_25", name: "B.Tech Mechanical 2025-26", programId: "P_ME", batch: "2025-29", total: 105000, installments: [{ label: "Installment 1", amount: 52500, dueDate: daysAhead(15) }, { label: "Installment 2", amount: 52500, dueDate: daysAhead(180) }], assignedCount: 25 },
+  { id: "FS_BTECH_CIVIL_25", name: "B.Tech Civil 2025-26", programId: "P_CIVIL", batch: "2025-29", total: 100000, installments: [{ label: "Installment 1", amount: 50000, dueDate: daysAhead(15) }, { label: "Installment 2", amount: 50000, dueDate: daysAhead(180) }], assignedCount: 25 },
+  { id: "FS_BTECH_BIO_25", name: "B.Tech Biotech 2025-26", programId: "P_BIOTECH", batch: "2025-29", total: 115000, installments: [{ label: "Installment 1", amount: 57500, dueDate: daysAhead(15) }, { label: "Installment 2", amount: 57500, dueDate: daysAhead(180) }], assignedCount: 20 },
+  { id: "FS_MBA_25", name: "MBA 2025-27", programId: "P_MBA", batch: "2025-27", total: 180000, installments: [{ label: "Installment 1", amount: 90000, dueDate: daysAhead(10) }, { label: "Installment 2", amount: 90000, dueDate: daysAhead(180) }], assignedCount: 0 },
 ];
 
-export const seedLedger: LedgerEntry[] = [
-  { id: "L1", studentId: students[0].id, date: daysAgo(60), head: "Tuition Fee", charge: 60000, balance: 60000 },
-  { id: "L2", studentId: students[0].id, date: daysAgo(45), head: "Online Payment", payment: 60000, balance: 0 },
-  { id: "L3", studentId: students[1].id, date: daysAgo(60), head: "Tuition Fee", charge: 60000, balance: 60000 },
-  { id: "L4", studentId: students[1].id, date: daysAgo(20), head: "Scholarship - Merit", scholarship: 20000, balance: 40000 },
-  { id: "L5", studentId: students[2].id, date: daysAgo(60), head: "Tuition Fee", charge: 60000, balance: 60000 },
-];
+// 140 students. Charge ₹60K each = ₹84L per sem.
+// First 126 paid in full (collected ₹75.6L). 14 defaulters = outstanding ₹8,17,489.
+const _ledger: LedgerEntry[] = [];
+students.forEach((stu, i) => {
+  _ledger.push({ id: `L_${stu.id}_C`, studentId: stu.id, date: daysAgo(60), head: "Tuition Fee — Sem 5", charge: 60000, balance: 60000 });
+  if (i < students.length - 14) {
+    _ledger.push({ id: `L_${stu.id}_P`, studentId: stu.id, date: daysAgo(45 - (i % 30)), head: "Online Payment (Razorpay)", payment: 60000, balance: 0 });
+  }
+});
+export const seedLedger: LedgerEntry[] = _ledger;
 
 export const seedScholarships: Scholarship[] = [
   { id: "SCH_MERIT", name: "Merit Scholarship", scheme: "Institutional", amount: 20000, appliedCount: 24, approvedCount: 12, disbursedCount: 8 },
   { id: "SCH_NSP", name: "NSP Scholarship", scheme: "Govt - NSP", amount: 15000, appliedCount: 18, approvedCount: 10, disbursedCount: 4 },
   { id: "SCH_EWS", name: "EWS Support", scheme: "State", amount: 25000, appliedCount: 9, approvedCount: 5, disbursedCount: 3 },
+  { id: "SCH_SC", name: "SC/ST Post-Matric", scheme: "Govt - State", amount: 30000, appliedCount: 14, approvedCount: 9, disbursedCount: 6 },
 ];
 
 // ─── Communication ───────────────────────────────────────────────────────
+// Total audience = 140 students + 140 parents + 26 staff = 306
 export const seedAnnouncements: Announcement[] = [
-  { id: "AN1", title: "Mid-sem schedule published", body: "Mid-semester exams begin from next Monday. Hall tickets available in student portal.", audience: ["Students","CSE","ECE","ME","CIVIL","BIOTECH"], channels: ["email","sms"], sent: 1247, delivered: 1240, opened: 982, sentAt: daysAgo(2) },
+  { id: "AN1", title: "Mid-sem schedule published", body: "Mid-semester exams begin from next Monday. Hall tickets available in student portal.", audience: ["Students","CSE","ECE","ME","CIVIL","BIOTECH"], channels: ["email","sms"], sent: 140, delivered: 138, opened: 112, sentAt: daysAgo(2) },
   { id: "AN2", title: "Razorpay drive registration", body: "Backend Engineer I role. Eligibility: CGPA >= 8.0. Apply by Friday.", audience: ["CSE - Final Year"], channels: ["email","whatsapp"], sent: 40, delivered: 40, opened: 38, sentAt: daysAgo(1) },
-  { id: "AN3", title: "Library renovation", body: "Central library will be closed Sat-Sun for renovation.", audience: ["All"], channels: ["email"], sent: 1247, delivered: 1247, opened: 700, sentAt: daysAgo(5) },
+  { id: "AN3", title: "Library renovation", body: "Central library will be closed Sat-Sun for renovation.", audience: ["All"], channels: ["email"], sent: 306, delivered: 304, opened: 198, sentAt: daysAgo(5) },
+  { id: "AN4", title: "PTM scheduled for Sat 14 Dec", body: "Parent-Teacher Meeting at 10:00 AM in respective department halls.", audience: ["Parents"], channels: ["email","sms","whatsapp"], sent: 140, delivered: 139, opened: 122, sentAt: daysAgo(3) },
 ];
 
 export const seedNotifications: Notification[] = [
@@ -368,7 +381,10 @@ export const INSTITUTION = {
   city: "Pune",
   type: "Affiliated Engineering College",
   founded: 2008,
-  students: 1247,
-  faculty: 87,
+  students: 140,
+  faculty: 26,
+  facultySanctioned: 30,
   departments: 6,
+  accreditation: "NAAC Accredited · MBGL Level 3 · valid till Mar 2028",
+  naacTarget: "Targeting Level 4",
 };
