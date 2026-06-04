@@ -46,8 +46,10 @@ const NAV: { group: string; items: { to: string; label: string; icon: any; navKe
     { to: "/academic/subjects", label: "Subjects", icon: BookMarked, navKey: "nav.academic" },
     { to: "/academic/classes", label: "Classes", icon: Users, navKey: "nav.academic" },
     { to: "/academic/timetable", label: "Timetable", icon: Calendar, navKey: "nav.academic" },
+    { to: "/academic/calendar", label: "Academic Calendar", icon: Calendar, navKey: "nav.academic" },
     { to: "/academic/attendance", label: "Attendance", icon: ClipboardList, navKey: "nav.academic" },
     { to: "/academic/study-material", label: "Study Material", icon: MonitorPlay, navKey: "nav.academic" },
+    { to: "/academic/course-files", label: "Course Files", icon: FileText, navKey: "nav.academic" },
     { to: "/academic/examinations", label: "Examinations", icon: FileText, navKey: "nav.academic" },
     { to: "/academic/results", label: "Results", icon: Award, navKey: "nav.academic" },
   ]},
@@ -62,11 +64,13 @@ const NAV: { group: string; items: { to: string; label: string; icon: any; navKe
   { group: "PEOPLE", items: [
     { to: "/people/students", label: "Students", icon: GraduationCap, navKey: "nav.people" },
     { to: "/people/faculty", label: "Faculty & Staff", icon: Users, navKey: "nav.people" },
+    { to: "/people/faculty-appraisal", label: "Faculty Appraisal", icon: BadgeCheck, navKey: "nav.people" },
     { to: "/people/parents", label: "Parents", icon: UserCircle2, navKey: "nav.people" },
   ]},
   { group: "FINANCE", items: [
     { to: "/finance/fee-structures", label: "Fee Structures", icon: Wallet, navKey: "nav.finance" },
     { to: "/finance/ledger", label: "Ledger & Payments", icon: FileText, navKey: "nav.finance" },
+    { to: "/finance/budget", label: "Budget vs Actual", icon: BarChart3, navKey: "nav.finance" },
     { to: "/finance/scholarships", label: "Scholarships", icon: Award, navKey: "nav.finance" },
     { to: "/finance/defaulters", label: "Defaulters", icon: ClipboardList, navKey: "nav.finance" },
   ]},
@@ -75,6 +79,10 @@ const NAV: { group: string; items: { to: string; label: string; icon: any; navKe
     { to: "/compliance/nba", label: "NBA", icon: ShieldCheck, navKey: "nav.compliance" },
     { to: "/compliance/nirf", label: "NIRF", icon: ShieldCheck, navKey: "nav.compliance" },
     { to: "/compliance/aicte", label: "AICTE", icon: ShieldCheck, navKey: "nav.compliance" },
+  ]},
+  { group: "QUALITY & GOVERNANCE", items: [
+    { to: "/quality/iqac", label: "IQAC", icon: ShieldCheck, navKey: "nav.compliance" },
+    { to: "/quality/grievances", label: "Grievances & Feedback", icon: MessageSquare, navKey: "nav.compliance" },
   ]},
   { group: "COMMUNICATION", items: [
     { to: "/communication/inbox", label: "Inbox", icon: MessageSquare, navKey: "nav.communication" },
@@ -86,6 +94,7 @@ const NAV: { group: string; items: { to: string; label: string; icon: any; navKe
   { group: "ADMINISTRATION", items: [
     { to: "/admin/access-control", label: "Access Control", icon: KeyRound, navKey: "nav.admin" },
     { to: "/admin/org-structure", label: "Org Structure", icon: FolderTree, navKey: "nav.admin" },
+    { to: "/admin/committees", label: "Committees", icon: Users, navKey: "nav.admin" },
     { to: "/admin/audit-log", label: "Audit Log", icon: History, navKey: "nav.admin" },
     { to: "/admin/settings", label: "Settings", icon: Settings },
   ]},

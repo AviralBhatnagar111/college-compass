@@ -17,6 +17,8 @@ import { Route as AppProfileRouteImport } from './routes/_app/profile'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
 import { Route as AppAccessDeniedRouteImport } from './routes/_app/access-denied'
 import { Route as AppSplatRouteImport } from './routes/_app/$'
+import { Route as AppQualityIqacRouteImport } from './routes/_app/quality/iqac'
+import { Route as AppQualityGrievancesRouteImport } from './routes/_app/quality/grievances'
 import { Route as AppPlacementOffersRouteImport } from './routes/_app/placement/offers'
 import { Route as AppPlacementJobProfilesRouteImport } from './routes/_app/placement/job-profiles'
 import { Route as AppPlacementDrivesRouteImport } from './routes/_app/placement/drives'
@@ -25,6 +27,7 @@ import { Route as AppPlacementAiInterviewsRouteImport } from './routes/_app/plac
 import { Route as AppPlacementAiAssessmentsRouteImport } from './routes/_app/placement/ai-assessments'
 import { Route as AppPeopleStudentsRouteImport } from './routes/_app/people/students'
 import { Route as AppPeopleParentsRouteImport } from './routes/_app/people/parents'
+import { Route as AppPeopleFacultyAppraisalRouteImport } from './routes/_app/people/faculty-appraisal'
 import { Route as AppPeopleFacultyRouteImport } from './routes/_app/people/faculty'
 import { Route as AppMyResultsRouteImport } from './routes/_app/my/results'
 import { Route as AppMyFeesRouteImport } from './routes/_app/my/fees'
@@ -32,6 +35,7 @@ import { Route as AppFinanceScholarshipsRouteImport } from './routes/_app/financ
 import { Route as AppFinanceLedgerRouteImport } from './routes/_app/finance/ledger'
 import { Route as AppFinanceFeeStructuresRouteImport } from './routes/_app/finance/fee-structures'
 import { Route as AppFinanceDefaultersRouteImport } from './routes/_app/finance/defaulters'
+import { Route as AppFinanceBudgetRouteImport } from './routes/_app/finance/budget'
 import { Route as AppComplianceNirfRouteImport } from './routes/_app/compliance/nirf'
 import { Route as AppComplianceNbaRouteImport } from './routes/_app/compliance/nba'
 import { Route as AppComplianceNaacRouteImport } from './routes/_app/compliance/naac'
@@ -41,6 +45,7 @@ import { Route as AppCommunicationAnnouncementsRouteImport } from './routes/_app
 import { Route as AppAnalyticsReportsRouteImport } from './routes/_app/analytics/reports'
 import { Route as AppAdminSettingsRouteImport } from './routes/_app/admin/settings'
 import { Route as AppAdminOrgStructureRouteImport } from './routes/_app/admin/org-structure'
+import { Route as AppAdminCommitteesRouteImport } from './routes/_app/admin/committees'
 import { Route as AppAdminAuditLogRouteImport } from './routes/_app/admin/audit-log'
 import { Route as AppAcademicTimetableRouteImport } from './routes/_app/academic/timetable'
 import { Route as AppAcademicSubjectsRouteImport } from './routes/_app/academic/subjects'
@@ -48,7 +53,9 @@ import { Route as AppAcademicStudyMaterialRouteImport } from './routes/_app/acad
 import { Route as AppAcademicResultsRouteImport } from './routes/_app/academic/results'
 import { Route as AppAcademicProgramsRouteImport } from './routes/_app/academic/programs'
 import { Route as AppAcademicExaminationsRouteImport } from './routes/_app/academic/examinations'
+import { Route as AppAcademicCourseFilesRouteImport } from './routes/_app/academic/course-files'
 import { Route as AppAcademicClassesRouteImport } from './routes/_app/academic/classes'
+import { Route as AppAcademicCalendarRouteImport } from './routes/_app/academic/calendar'
 import { Route as AppAcademicAttendanceRouteImport } from './routes/_app/academic/attendance'
 import { Route as AppAdminAccessControlIndexRouteImport } from './routes/_app/admin/access-control/index'
 import { Route as AppPlacementDrivesIdRouteImport } from './routes/_app/placement/drives.$id'
@@ -101,6 +108,16 @@ const AppSplatRoute = AppSplatRouteImport.update({
   path: '/$',
   getParentRoute: () => AppRoute,
 } as any)
+const AppQualityIqacRoute = AppQualityIqacRouteImport.update({
+  id: '/quality/iqac',
+  path: '/quality/iqac',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppQualityGrievancesRoute = AppQualityGrievancesRouteImport.update({
+  id: '/quality/grievances',
+  path: '/quality/grievances',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppPlacementOffersRoute = AppPlacementOffersRouteImport.update({
   id: '/placement/offers',
   path: '/placement/offers',
@@ -143,6 +160,12 @@ const AppPeopleParentsRoute = AppPeopleParentsRouteImport.update({
   path: '/people/parents',
   getParentRoute: () => AppRoute,
 } as any)
+const AppPeopleFacultyAppraisalRoute =
+  AppPeopleFacultyAppraisalRouteImport.update({
+    id: '/people/faculty-appraisal',
+    path: '/people/faculty-appraisal',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppPeopleFacultyRoute = AppPeopleFacultyRouteImport.update({
   id: '/people/faculty',
   path: '/people/faculty',
@@ -176,6 +199,11 @@ const AppFinanceFeeStructuresRoute = AppFinanceFeeStructuresRouteImport.update({
 const AppFinanceDefaultersRoute = AppFinanceDefaultersRouteImport.update({
   id: '/finance/defaulters',
   path: '/finance/defaulters',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppFinanceBudgetRoute = AppFinanceBudgetRouteImport.update({
+  id: '/finance/budget',
+  path: '/finance/budget',
   getParentRoute: () => AppRoute,
 } as any)
 const AppComplianceNirfRoute = AppComplianceNirfRouteImport.update({
@@ -224,6 +252,11 @@ const AppAdminOrgStructureRoute = AppAdminOrgStructureRouteImport.update({
   path: '/admin/org-structure',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAdminCommitteesRoute = AppAdminCommitteesRouteImport.update({
+  id: '/admin/committees',
+  path: '/admin/committees',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAdminAuditLogRoute = AppAdminAuditLogRouteImport.update({
   id: '/admin/audit-log',
   path: '/admin/audit-log',
@@ -260,9 +293,19 @@ const AppAcademicExaminationsRoute = AppAcademicExaminationsRouteImport.update({
   path: '/academic/examinations',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAcademicCourseFilesRoute = AppAcademicCourseFilesRouteImport.update({
+  id: '/academic/course-files',
+  path: '/academic/course-files',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAcademicClassesRoute = AppAcademicClassesRouteImport.update({
   id: '/academic/classes',
   path: '/academic/classes',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAcademicCalendarRoute = AppAcademicCalendarRouteImport.update({
+  id: '/academic/calendar',
+  path: '/academic/calendar',
   getParentRoute: () => AppRoute,
 } as any)
 const AppAcademicAttendanceRoute = AppAcademicAttendanceRouteImport.update({
@@ -344,7 +387,9 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AppDashboardRoute
   '/profile': typeof AppProfileRoute
   '/academic/attendance': typeof AppAcademicAttendanceRoute
+  '/academic/calendar': typeof AppAcademicCalendarRoute
   '/academic/classes': typeof AppAcademicClassesRoute
+  '/academic/course-files': typeof AppAcademicCourseFilesRoute
   '/academic/examinations': typeof AppAcademicExaminationsRouteWithChildren
   '/academic/programs': typeof AppAcademicProgramsRoute
   '/academic/results': typeof AppAcademicResultsRoute
@@ -352,6 +397,7 @@ export interface FileRoutesByFullPath {
   '/academic/subjects': typeof AppAcademicSubjectsRoute
   '/academic/timetable': typeof AppAcademicTimetableRoute
   '/admin/audit-log': typeof AppAdminAuditLogRoute
+  '/admin/committees': typeof AppAdminCommitteesRoute
   '/admin/org-structure': typeof AppAdminOrgStructureRoute
   '/admin/settings': typeof AppAdminSettingsRoute
   '/analytics/reports': typeof AppAnalyticsReportsRoute
@@ -361,6 +407,7 @@ export interface FileRoutesByFullPath {
   '/compliance/naac': typeof AppComplianceNaacRoute
   '/compliance/nba': typeof AppComplianceNbaRoute
   '/compliance/nirf': typeof AppComplianceNirfRoute
+  '/finance/budget': typeof AppFinanceBudgetRoute
   '/finance/defaulters': typeof AppFinanceDefaultersRoute
   '/finance/fee-structures': typeof AppFinanceFeeStructuresRoute
   '/finance/ledger': typeof AppFinanceLedgerRoute
@@ -368,6 +415,7 @@ export interface FileRoutesByFullPath {
   '/my/fees': typeof AppMyFeesRoute
   '/my/results': typeof AppMyResultsRoute
   '/people/faculty': typeof AppPeopleFacultyRoute
+  '/people/faculty-appraisal': typeof AppPeopleFacultyAppraisalRoute
   '/people/parents': typeof AppPeopleParentsRoute
   '/people/students': typeof AppPeopleStudentsRouteWithChildren
   '/placement/ai-assessments': typeof AppPlacementAiAssessmentsRouteWithChildren
@@ -376,6 +424,8 @@ export interface FileRoutesByFullPath {
   '/placement/drives': typeof AppPlacementDrivesRouteWithChildren
   '/placement/job-profiles': typeof AppPlacementJobProfilesRoute
   '/placement/offers': typeof AppPlacementOffersRoute
+  '/quality/grievances': typeof AppQualityGrievancesRoute
+  '/quality/iqac': typeof AppQualityIqacRoute
   '/academic/examinations/$id': typeof AppAcademicExaminationsIdRoute
   '/admin/access-control/access-packs': typeof AppAdminAccessControlAccessPacksRouteWithChildren
   '/admin/access-control/activity': typeof AppAdminAccessControlActivityRoute
@@ -397,7 +447,9 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AppDashboardRoute
   '/profile': typeof AppProfileRoute
   '/academic/attendance': typeof AppAcademicAttendanceRoute
+  '/academic/calendar': typeof AppAcademicCalendarRoute
   '/academic/classes': typeof AppAcademicClassesRoute
+  '/academic/course-files': typeof AppAcademicCourseFilesRoute
   '/academic/examinations': typeof AppAcademicExaminationsRouteWithChildren
   '/academic/programs': typeof AppAcademicProgramsRoute
   '/academic/results': typeof AppAcademicResultsRoute
@@ -405,6 +457,7 @@ export interface FileRoutesByTo {
   '/academic/subjects': typeof AppAcademicSubjectsRoute
   '/academic/timetable': typeof AppAcademicTimetableRoute
   '/admin/audit-log': typeof AppAdminAuditLogRoute
+  '/admin/committees': typeof AppAdminCommitteesRoute
   '/admin/org-structure': typeof AppAdminOrgStructureRoute
   '/admin/settings': typeof AppAdminSettingsRoute
   '/analytics/reports': typeof AppAnalyticsReportsRoute
@@ -414,6 +467,7 @@ export interface FileRoutesByTo {
   '/compliance/naac': typeof AppComplianceNaacRoute
   '/compliance/nba': typeof AppComplianceNbaRoute
   '/compliance/nirf': typeof AppComplianceNirfRoute
+  '/finance/budget': typeof AppFinanceBudgetRoute
   '/finance/defaulters': typeof AppFinanceDefaultersRoute
   '/finance/fee-structures': typeof AppFinanceFeeStructuresRoute
   '/finance/ledger': typeof AppFinanceLedgerRoute
@@ -421,6 +475,7 @@ export interface FileRoutesByTo {
   '/my/fees': typeof AppMyFeesRoute
   '/my/results': typeof AppMyResultsRoute
   '/people/faculty': typeof AppPeopleFacultyRoute
+  '/people/faculty-appraisal': typeof AppPeopleFacultyAppraisalRoute
   '/people/parents': typeof AppPeopleParentsRoute
   '/people/students': typeof AppPeopleStudentsRouteWithChildren
   '/placement/ai-assessments': typeof AppPlacementAiAssessmentsRouteWithChildren
@@ -429,6 +484,8 @@ export interface FileRoutesByTo {
   '/placement/drives': typeof AppPlacementDrivesRouteWithChildren
   '/placement/job-profiles': typeof AppPlacementJobProfilesRoute
   '/placement/offers': typeof AppPlacementOffersRoute
+  '/quality/grievances': typeof AppQualityGrievancesRoute
+  '/quality/iqac': typeof AppQualityIqacRoute
   '/academic/examinations/$id': typeof AppAcademicExaminationsIdRoute
   '/admin/access-control/access-packs': typeof AppAdminAccessControlAccessPacksRouteWithChildren
   '/admin/access-control/activity': typeof AppAdminAccessControlActivityRoute
@@ -452,7 +509,9 @@ export interface FileRoutesById {
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/profile': typeof AppProfileRoute
   '/_app/academic/attendance': typeof AppAcademicAttendanceRoute
+  '/_app/academic/calendar': typeof AppAcademicCalendarRoute
   '/_app/academic/classes': typeof AppAcademicClassesRoute
+  '/_app/academic/course-files': typeof AppAcademicCourseFilesRoute
   '/_app/academic/examinations': typeof AppAcademicExaminationsRouteWithChildren
   '/_app/academic/programs': typeof AppAcademicProgramsRoute
   '/_app/academic/results': typeof AppAcademicResultsRoute
@@ -460,6 +519,7 @@ export interface FileRoutesById {
   '/_app/academic/subjects': typeof AppAcademicSubjectsRoute
   '/_app/academic/timetable': typeof AppAcademicTimetableRoute
   '/_app/admin/audit-log': typeof AppAdminAuditLogRoute
+  '/_app/admin/committees': typeof AppAdminCommitteesRoute
   '/_app/admin/org-structure': typeof AppAdminOrgStructureRoute
   '/_app/admin/settings': typeof AppAdminSettingsRoute
   '/_app/analytics/reports': typeof AppAnalyticsReportsRoute
@@ -469,6 +529,7 @@ export interface FileRoutesById {
   '/_app/compliance/naac': typeof AppComplianceNaacRoute
   '/_app/compliance/nba': typeof AppComplianceNbaRoute
   '/_app/compliance/nirf': typeof AppComplianceNirfRoute
+  '/_app/finance/budget': typeof AppFinanceBudgetRoute
   '/_app/finance/defaulters': typeof AppFinanceDefaultersRoute
   '/_app/finance/fee-structures': typeof AppFinanceFeeStructuresRoute
   '/_app/finance/ledger': typeof AppFinanceLedgerRoute
@@ -476,6 +537,7 @@ export interface FileRoutesById {
   '/_app/my/fees': typeof AppMyFeesRoute
   '/_app/my/results': typeof AppMyResultsRoute
   '/_app/people/faculty': typeof AppPeopleFacultyRoute
+  '/_app/people/faculty-appraisal': typeof AppPeopleFacultyAppraisalRoute
   '/_app/people/parents': typeof AppPeopleParentsRoute
   '/_app/people/students': typeof AppPeopleStudentsRouteWithChildren
   '/_app/placement/ai-assessments': typeof AppPlacementAiAssessmentsRouteWithChildren
@@ -484,6 +546,8 @@ export interface FileRoutesById {
   '/_app/placement/drives': typeof AppPlacementDrivesRouteWithChildren
   '/_app/placement/job-profiles': typeof AppPlacementJobProfilesRoute
   '/_app/placement/offers': typeof AppPlacementOffersRoute
+  '/_app/quality/grievances': typeof AppQualityGrievancesRoute
+  '/_app/quality/iqac': typeof AppQualityIqacRoute
   '/_app/academic/examinations/$id': typeof AppAcademicExaminationsIdRoute
   '/_app/admin/access-control/access-packs': typeof AppAdminAccessControlAccessPacksRouteWithChildren
   '/_app/admin/access-control/activity': typeof AppAdminAccessControlActivityRoute
@@ -507,7 +571,9 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/profile'
     | '/academic/attendance'
+    | '/academic/calendar'
     | '/academic/classes'
+    | '/academic/course-files'
     | '/academic/examinations'
     | '/academic/programs'
     | '/academic/results'
@@ -515,6 +581,7 @@ export interface FileRouteTypes {
     | '/academic/subjects'
     | '/academic/timetable'
     | '/admin/audit-log'
+    | '/admin/committees'
     | '/admin/org-structure'
     | '/admin/settings'
     | '/analytics/reports'
@@ -524,6 +591,7 @@ export interface FileRouteTypes {
     | '/compliance/naac'
     | '/compliance/nba'
     | '/compliance/nirf'
+    | '/finance/budget'
     | '/finance/defaulters'
     | '/finance/fee-structures'
     | '/finance/ledger'
@@ -531,6 +599,7 @@ export interface FileRouteTypes {
     | '/my/fees'
     | '/my/results'
     | '/people/faculty'
+    | '/people/faculty-appraisal'
     | '/people/parents'
     | '/people/students'
     | '/placement/ai-assessments'
@@ -539,6 +608,8 @@ export interface FileRouteTypes {
     | '/placement/drives'
     | '/placement/job-profiles'
     | '/placement/offers'
+    | '/quality/grievances'
+    | '/quality/iqac'
     | '/academic/examinations/$id'
     | '/admin/access-control/access-packs'
     | '/admin/access-control/activity'
@@ -560,7 +631,9 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/profile'
     | '/academic/attendance'
+    | '/academic/calendar'
     | '/academic/classes'
+    | '/academic/course-files'
     | '/academic/examinations'
     | '/academic/programs'
     | '/academic/results'
@@ -568,6 +641,7 @@ export interface FileRouteTypes {
     | '/academic/subjects'
     | '/academic/timetable'
     | '/admin/audit-log'
+    | '/admin/committees'
     | '/admin/org-structure'
     | '/admin/settings'
     | '/analytics/reports'
@@ -577,6 +651,7 @@ export interface FileRouteTypes {
     | '/compliance/naac'
     | '/compliance/nba'
     | '/compliance/nirf'
+    | '/finance/budget'
     | '/finance/defaulters'
     | '/finance/fee-structures'
     | '/finance/ledger'
@@ -584,6 +659,7 @@ export interface FileRouteTypes {
     | '/my/fees'
     | '/my/results'
     | '/people/faculty'
+    | '/people/faculty-appraisal'
     | '/people/parents'
     | '/people/students'
     | '/placement/ai-assessments'
@@ -592,6 +668,8 @@ export interface FileRouteTypes {
     | '/placement/drives'
     | '/placement/job-profiles'
     | '/placement/offers'
+    | '/quality/grievances'
+    | '/quality/iqac'
     | '/academic/examinations/$id'
     | '/admin/access-control/access-packs'
     | '/admin/access-control/activity'
@@ -614,7 +692,9 @@ export interface FileRouteTypes {
     | '/_app/dashboard'
     | '/_app/profile'
     | '/_app/academic/attendance'
+    | '/_app/academic/calendar'
     | '/_app/academic/classes'
+    | '/_app/academic/course-files'
     | '/_app/academic/examinations'
     | '/_app/academic/programs'
     | '/_app/academic/results'
@@ -622,6 +702,7 @@ export interface FileRouteTypes {
     | '/_app/academic/subjects'
     | '/_app/academic/timetable'
     | '/_app/admin/audit-log'
+    | '/_app/admin/committees'
     | '/_app/admin/org-structure'
     | '/_app/admin/settings'
     | '/_app/analytics/reports'
@@ -631,6 +712,7 @@ export interface FileRouteTypes {
     | '/_app/compliance/naac'
     | '/_app/compliance/nba'
     | '/_app/compliance/nirf'
+    | '/_app/finance/budget'
     | '/_app/finance/defaulters'
     | '/_app/finance/fee-structures'
     | '/_app/finance/ledger'
@@ -638,6 +720,7 @@ export interface FileRouteTypes {
     | '/_app/my/fees'
     | '/_app/my/results'
     | '/_app/people/faculty'
+    | '/_app/people/faculty-appraisal'
     | '/_app/people/parents'
     | '/_app/people/students'
     | '/_app/placement/ai-assessments'
@@ -646,6 +729,8 @@ export interface FileRouteTypes {
     | '/_app/placement/drives'
     | '/_app/placement/job-profiles'
     | '/_app/placement/offers'
+    | '/_app/quality/grievances'
+    | '/_app/quality/iqac'
     | '/_app/academic/examinations/$id'
     | '/_app/admin/access-control/access-packs'
     | '/_app/admin/access-control/activity'
@@ -724,6 +809,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSplatRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/quality/iqac': {
+      id: '/_app/quality/iqac'
+      path: '/quality/iqac'
+      fullPath: '/quality/iqac'
+      preLoaderRoute: typeof AppQualityIqacRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/quality/grievances': {
+      id: '/_app/quality/grievances'
+      path: '/quality/grievances'
+      fullPath: '/quality/grievances'
+      preLoaderRoute: typeof AppQualityGrievancesRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/placement/offers': {
       id: '/_app/placement/offers'
       path: '/placement/offers'
@@ -780,6 +879,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPeopleParentsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/people/faculty-appraisal': {
+      id: '/_app/people/faculty-appraisal'
+      path: '/people/faculty-appraisal'
+      fullPath: '/people/faculty-appraisal'
+      preLoaderRoute: typeof AppPeopleFacultyAppraisalRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/people/faculty': {
       id: '/_app/people/faculty'
       path: '/people/faculty'
@@ -827,6 +933,13 @@ declare module '@tanstack/react-router' {
       path: '/finance/defaulters'
       fullPath: '/finance/defaulters'
       preLoaderRoute: typeof AppFinanceDefaultersRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/finance/budget': {
+      id: '/_app/finance/budget'
+      path: '/finance/budget'
+      fullPath: '/finance/budget'
+      preLoaderRoute: typeof AppFinanceBudgetRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/compliance/nirf': {
@@ -892,6 +1005,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminOrgStructureRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/admin/committees': {
+      id: '/_app/admin/committees'
+      path: '/admin/committees'
+      fullPath: '/admin/committees'
+      preLoaderRoute: typeof AppAdminCommitteesRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/admin/audit-log': {
       id: '/_app/admin/audit-log'
       path: '/admin/audit-log'
@@ -941,11 +1061,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAcademicExaminationsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/academic/course-files': {
+      id: '/_app/academic/course-files'
+      path: '/academic/course-files'
+      fullPath: '/academic/course-files'
+      preLoaderRoute: typeof AppAcademicCourseFilesRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/academic/classes': {
       id: '/_app/academic/classes'
       path: '/academic/classes'
       fullPath: '/academic/classes'
       preLoaderRoute: typeof AppAcademicClassesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/academic/calendar': {
+      id: '/_app/academic/calendar'
+      path: '/academic/calendar'
+      fullPath: '/academic/calendar'
+      preLoaderRoute: typeof AppAcademicCalendarRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/academic/attendance': {
@@ -1106,7 +1240,9 @@ interface AppRouteChildren {
   AppDashboardRoute: typeof AppDashboardRoute
   AppProfileRoute: typeof AppProfileRoute
   AppAcademicAttendanceRoute: typeof AppAcademicAttendanceRoute
+  AppAcademicCalendarRoute: typeof AppAcademicCalendarRoute
   AppAcademicClassesRoute: typeof AppAcademicClassesRoute
+  AppAcademicCourseFilesRoute: typeof AppAcademicCourseFilesRoute
   AppAcademicExaminationsRoute: typeof AppAcademicExaminationsRouteWithChildren
   AppAcademicProgramsRoute: typeof AppAcademicProgramsRoute
   AppAcademicResultsRoute: typeof AppAcademicResultsRoute
@@ -1114,6 +1250,7 @@ interface AppRouteChildren {
   AppAcademicSubjectsRoute: typeof AppAcademicSubjectsRoute
   AppAcademicTimetableRoute: typeof AppAcademicTimetableRoute
   AppAdminAuditLogRoute: typeof AppAdminAuditLogRoute
+  AppAdminCommitteesRoute: typeof AppAdminCommitteesRoute
   AppAdminOrgStructureRoute: typeof AppAdminOrgStructureRoute
   AppAdminSettingsRoute: typeof AppAdminSettingsRoute
   AppAnalyticsReportsRoute: typeof AppAnalyticsReportsRoute
@@ -1123,6 +1260,7 @@ interface AppRouteChildren {
   AppComplianceNaacRoute: typeof AppComplianceNaacRoute
   AppComplianceNbaRoute: typeof AppComplianceNbaRoute
   AppComplianceNirfRoute: typeof AppComplianceNirfRoute
+  AppFinanceBudgetRoute: typeof AppFinanceBudgetRoute
   AppFinanceDefaultersRoute: typeof AppFinanceDefaultersRoute
   AppFinanceFeeStructuresRoute: typeof AppFinanceFeeStructuresRoute
   AppFinanceLedgerRoute: typeof AppFinanceLedgerRoute
@@ -1130,6 +1268,7 @@ interface AppRouteChildren {
   AppMyFeesRoute: typeof AppMyFeesRoute
   AppMyResultsRoute: typeof AppMyResultsRoute
   AppPeopleFacultyRoute: typeof AppPeopleFacultyRoute
+  AppPeopleFacultyAppraisalRoute: typeof AppPeopleFacultyAppraisalRoute
   AppPeopleParentsRoute: typeof AppPeopleParentsRoute
   AppPeopleStudentsRoute: typeof AppPeopleStudentsRouteWithChildren
   AppPlacementAiAssessmentsRoute: typeof AppPlacementAiAssessmentsRouteWithChildren
@@ -1138,6 +1277,8 @@ interface AppRouteChildren {
   AppPlacementDrivesRoute: typeof AppPlacementDrivesRouteWithChildren
   AppPlacementJobProfilesRoute: typeof AppPlacementJobProfilesRoute
   AppPlacementOffersRoute: typeof AppPlacementOffersRoute
+  AppQualityGrievancesRoute: typeof AppQualityGrievancesRoute
+  AppQualityIqacRoute: typeof AppQualityIqacRoute
   AppAdminAccessControlAccessPacksRoute: typeof AppAdminAccessControlAccessPacksRouteWithChildren
   AppAdminAccessControlActivityRoute: typeof AppAdminAccessControlActivityRoute
   AppAdminAccessControlPeopleRoute: typeof AppAdminAccessControlPeopleRoute
@@ -1152,7 +1293,9 @@ const AppRouteChildren: AppRouteChildren = {
   AppDashboardRoute: AppDashboardRoute,
   AppProfileRoute: AppProfileRoute,
   AppAcademicAttendanceRoute: AppAcademicAttendanceRoute,
+  AppAcademicCalendarRoute: AppAcademicCalendarRoute,
   AppAcademicClassesRoute: AppAcademicClassesRoute,
+  AppAcademicCourseFilesRoute: AppAcademicCourseFilesRoute,
   AppAcademicExaminationsRoute: AppAcademicExaminationsRouteWithChildren,
   AppAcademicProgramsRoute: AppAcademicProgramsRoute,
   AppAcademicResultsRoute: AppAcademicResultsRoute,
@@ -1160,6 +1303,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAcademicSubjectsRoute: AppAcademicSubjectsRoute,
   AppAcademicTimetableRoute: AppAcademicTimetableRoute,
   AppAdminAuditLogRoute: AppAdminAuditLogRoute,
+  AppAdminCommitteesRoute: AppAdminCommitteesRoute,
   AppAdminOrgStructureRoute: AppAdminOrgStructureRoute,
   AppAdminSettingsRoute: AppAdminSettingsRoute,
   AppAnalyticsReportsRoute: AppAnalyticsReportsRoute,
@@ -1169,6 +1313,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppComplianceNaacRoute: AppComplianceNaacRoute,
   AppComplianceNbaRoute: AppComplianceNbaRoute,
   AppComplianceNirfRoute: AppComplianceNirfRoute,
+  AppFinanceBudgetRoute: AppFinanceBudgetRoute,
   AppFinanceDefaultersRoute: AppFinanceDefaultersRoute,
   AppFinanceFeeStructuresRoute: AppFinanceFeeStructuresRoute,
   AppFinanceLedgerRoute: AppFinanceLedgerRoute,
@@ -1176,6 +1321,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppMyFeesRoute: AppMyFeesRoute,
   AppMyResultsRoute: AppMyResultsRoute,
   AppPeopleFacultyRoute: AppPeopleFacultyRoute,
+  AppPeopleFacultyAppraisalRoute: AppPeopleFacultyAppraisalRoute,
   AppPeopleParentsRoute: AppPeopleParentsRoute,
   AppPeopleStudentsRoute: AppPeopleStudentsRouteWithChildren,
   AppPlacementAiAssessmentsRoute: AppPlacementAiAssessmentsRouteWithChildren,
@@ -1184,6 +1330,8 @@ const AppRouteChildren: AppRouteChildren = {
   AppPlacementDrivesRoute: AppPlacementDrivesRouteWithChildren,
   AppPlacementJobProfilesRoute: AppPlacementJobProfilesRoute,
   AppPlacementOffersRoute: AppPlacementOffersRoute,
+  AppQualityGrievancesRoute: AppQualityGrievancesRoute,
+  AppQualityIqacRoute: AppQualityIqacRoute,
   AppAdminAccessControlAccessPacksRoute:
     AppAdminAccessControlAccessPacksRouteWithChildren,
   AppAdminAccessControlActivityRoute: AppAdminAccessControlActivityRoute,
@@ -1204,13 +1352,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
