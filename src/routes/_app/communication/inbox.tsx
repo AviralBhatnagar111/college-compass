@@ -1,13 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useCommStore } from "@/stores";
-import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Inbox, Archive, Clock, Send, Star, Search, Reply, Forward, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/communication/inbox")({
   head: () => ({ meta: [{ title: "Inbox — LearnNowX" }] }),
@@ -26,15 +30,23 @@ function InboxPage() {
   const moveMessage = useCommStore(s => s.moveMessage);
   const [folder, setFolder] = useState<typeof FOLDERS[number]["id"]>("todo");
   const [selectedId, setSelectedId] = useState<string | null>(inbox[0]?.id ?? null);
+  const [compose, setCompose] = useState(false);
+  const [form, setForm] = useState({ to: "", subject: "", body: "" });
+  const [replyOpen, setReplyOpen] = useState(false);
   const list = inbox.filter(m => m.folder === folder);
   const selected = inbox.find(m => m.id === selectedId);
+
+  const send = () => {
+    if (!form.to.trim() || !form.subject.trim()) { toast.error("To and subject required"); return; }
+    toast.success("Message sent", { description: `To: ${form.to}` });
+    setCompose(false); setForm({ to: "", subject: "", body: "" });
+  };
 
   return (
     <div>
       <PageHeader title="Inbox" subtitle="Triple-pane mail for institutional workflows" />
       <Card className="p-0 overflow-hidden">
         <div className="grid grid-cols-[200px,1fr,1.4fr] h-[calc(100vh-220px)] min-h-[500px]">
-          {/* Folders */}
           <div className="border-r bg-muted/30 p-2">
             {FOLDERS.map(f => {
               const count = inbox.filter(m => m.folder === f.id).length;
@@ -47,10 +59,9 @@ function InboxPage() {
                 </button>
               );
             })}
-            <Button className="w-full mt-4"><Send className="h-3 w-3 mr-1" />Compose</Button>
+            <Button className="w-full mt-4" onClick={() => setCompose(true)}><Send className="h-3 w-3 mr-1" />Compose</Button>
           </div>
 
-          {/* Message List */}
           <div className="border-r flex flex-col">
             <div className="border-b p-2"><div className="relative"><Search className="h-3 w-3 absolute left-2.5 top-2.5 text-muted-foreground" /><Input placeholder="Search messages" className="pl-7 h-8 text-xs" /></div></div>
             <div className="flex-1 overflow-y-auto">
@@ -69,7 +80,6 @@ function InboxPage() {
             </div>
           </div>
 
-          {/* Reading Pane */}
           <div className="flex flex-col">
             {selected ? (
               <>
@@ -78,18 +88,18 @@ function InboxPage() {
                   <div className="mt-2 flex items-center justify-between">
                     <p className="text-xs text-muted-foreground">From <span className="font-medium text-foreground">{selected.from}</span> · {new Date(selected.receivedAt).toLocaleString()}</p>
                     <div className="flex gap-1">
-                      <Button size="sm" variant="ghost"><Reply className="h-3 w-3" /></Button>
-                      <Button size="sm" variant="ghost"><Forward className="h-3 w-3" /></Button>
-                      <Button size="sm" variant="ghost" onClick={() => { moveMessage(selected.id, "archived"); setSelectedId(null); }}><Trash2 className="h-3 w-3 text-lnx-red-500" /></Button>
+                      <Button size="sm" variant="ghost" onClick={() => { setReplyOpen(true); setForm({ to: selected.from, subject: `Re: ${selected.subject}`, body: "" }); }}><Reply className="h-3 w-3" /></Button>
+                      <Button size="sm" variant="ghost" onClick={() => { setCompose(true); setForm({ to: "", subject: `Fwd: ${selected.subject}`, body: `\n\n---\nFrom: ${selected.from}\n${selected.body}` }); }}><Forward className="h-3 w-3" /></Button>
+                      <Button size="sm" variant="ghost" onClick={() => { moveMessage(selected.id, "archived"); setSelectedId(null); toast.success("Archived"); }}><Trash2 className="h-3 w-3 text-lnx-red-500" /></Button>
                     </div>
                   </div>
                 </div>
                 <div className="flex-1 p-4 overflow-y-auto">
-                  <p className="text-sm leading-relaxed">{selected.body}</p>
+                  <p className="text-sm leading-relaxed whitespace-pre-line">{selected.body}</p>
                   {selected.actionLabel && (
                     <div className="mt-6 rounded-md border-l-4 border-l-lnx-teal-500 bg-lnx-teal-500/5 p-3">
                       <p className="text-xs font-semibold text-lnx-teal-500 uppercase">Action Required</p>
-                      <Button size="sm" className="mt-2">{selected.actionLabel}</Button>
+                      <Button size="sm" className="mt-2" onClick={() => toast.success(`${selected.actionLabel} triggered`)}>{selected.actionLabel}</Button>
                     </div>
                   )}
                 </div>
@@ -98,6 +108,18 @@ function InboxPage() {
           </div>
         </div>
       </Card>
+
+      <Dialog open={compose || replyOpen} onOpenChange={(v) => { if (!v) { setCompose(false); setReplyOpen(false); } }}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader><DialogTitle>{replyOpen ? "Reply" : "Compose message"}</DialogTitle></DialogHeader>
+          <div className="grid gap-3 py-2">
+            <div><Label>To</Label><Input value={form.to} onChange={e => setForm({...form, to: e.target.value})} placeholder="recipient@biet.ac.in" /></div>
+            <div><Label>Subject</Label><Input value={form.subject} onChange={e => setForm({...form, subject: e.target.value})} /></div>
+            <div><Label>Body</Label><Textarea rows={6} value={form.body} onChange={e => setForm({...form, body: e.target.value})} /></div>
+          </div>
+          <DialogFooter><Button variant="ghost" onClick={() => { setCompose(false); setReplyOpen(false); }}>Cancel</Button><Button onClick={send}><Send className="h-3 w-3 mr-1" />Send</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

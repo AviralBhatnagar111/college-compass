@@ -1,11 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { useFinanceStore } from "@/stores";
-import { Award, IndianRupee, Plus } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useFinanceStore, useUsersStore } from "@/stores";
+import { useAccess } from "@/lib/access";
+import { Award, IndianRupee, Plus, CheckCircle2 } from "lucide-react";
+import { Avatar } from "@/components/common/Avatar";
+import { verifyScholarshipCascade, disburseScholarshipCascade } from "@/lib/cascade";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/finance/scholarships")({
   head: () => ({ meta: [{ title: "Scholarships — LearnNowX" }] }),
@@ -16,6 +22,26 @@ const INR = (n: number) => "₹" + n.toLocaleString("en-IN");
 
 function ScholarshipsPage() {
   const list = useFinanceStore(s => s.scholarships);
+  const students = useUsersStore(s => s.users.filter(u => u.role === "student").slice(0, 8));
+  const { user } = useAccess();
+  const [open, setOpen] = useState<string | null>(null);
+  const [verified, setVerified] = useState<Set<string>>(new Set());
+
+  const scheme = list.find(s => s.id === open);
+
+  const doVerify = (sid: string) => {
+    if (!scheme) return;
+    verifyScholarshipCascade(sid, scheme.name, user?.id ?? "u_registrar");
+    setVerified(prev => new Set(prev).add(sid));
+    toast.success("Scholarship verified", { description: "Finance queue updated." });
+  };
+  const disburseAll = () => {
+    if (!scheme) return;
+    disburseScholarshipCascade(verified.size || 4, scheme.amount, user?.id ?? "u_finance_head");
+    toast.success("Disbursed", { description: `${verified.size || 4} students · ${INR((verified.size || 4) * scheme.amount)}` });
+    setOpen(null); setVerified(new Set());
+  };
+
   return (
     <div>
       <PageHeader title="Scholarships" subtitle="Schemes, applications, approvals and disbursals" action={<Button><Plus className="h-4 w-4 mr-2" />New Scheme</Button>} />
@@ -34,10 +60,36 @@ function ScholarshipsPage() {
               <Row label="Approved" v={s.approvedCount} max={s.appliedCount} tone="bg-lnx-amber-500" />
               <Row label="Disbursed" v={s.disbursedCount} max={s.appliedCount} tone="bg-lnx-green-500" />
             </div>
-            <Button variant="outline" size="sm" className="w-full mt-4">Manage Applicants</Button>
+            <Button variant="outline" size="sm" className="w-full mt-4" onClick={() => setOpen(s.id)}>Manage Applicants</Button>
           </Card>
         ))}
       </div>
+
+      <Dialog open={!!open} onOpenChange={(v) => !v && setOpen(null)}>
+        <DialogContent className="max-w-2xl">
+          {scheme && (
+            <>
+              <DialogHeader><DialogTitle>{scheme.name} — Applicants</DialogTitle></DialogHeader>
+              <div className="max-h-[60vh] overflow-y-auto">
+                <Table>
+                  <TableHeader><TableRow><TableHead>Student</TableHead><TableHead>CGPA</TableHead><TableHead>Status</TableHead><TableHead></TableHead></TableRow></TableHeader>
+                  <TableBody>
+                    {students.map(s => (
+                      <TableRow key={s.id}>
+                        <TableCell><div className="flex items-center gap-2"><Avatar firstName={s.firstName} lastName={s.lastName} color={s.avatarColor} size="sm" /><span className="text-sm">{s.firstName} {s.lastName}</span></div></TableCell>
+                        <TableCell>{s.cgpa?.toFixed(2)}</TableCell>
+                        <TableCell>{verified.has(s.id) ? <Badge className="bg-lnx-green-500/10 text-lnx-green-500" variant="secondary"><CheckCircle2 className="h-3 w-3 mr-1" />Verified</Badge> : <Badge variant="outline">Pending</Badge>}</TableCell>
+                        <TableCell>{!verified.has(s.id) && <Button size="sm" onClick={() => doVerify(s.id)}>Verify</Button>}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              <DialogFooter><Button variant="ghost" onClick={() => setOpen(null)}>Close</Button><Button onClick={disburseAll}>Disburse {INR((verified.size || 4) * scheme.amount)}</Button></DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -1,13 +1,15 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useAcademicStore, useUsersStore } from "@/stores";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useAcademicStore, useUsersStore, useAccessStore } from "@/stores";
 import { useAccess } from "@/lib/access";
-import { saveAttendanceCascade } from "@/lib/cascade";
-import { Check, X, Clock, ClipboardCheck, Save } from "lucide-react";
+import { saveAttendanceCascade, sendDeptAlertCascade } from "@/lib/cascade";
+import { Check, X, Clock, ClipboardCheck, Save, Eye, TrendingUp, AlertTriangle, Bell } from "lucide-react";
 import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/common/Avatar";
@@ -28,7 +30,16 @@ const markStyle: Record<Mark, string> = {
   ML: "bg-lnx-navy-800 text-white border-lnx-navy-800",
 };
 
+const OVERSIGHT_ROLES = ["hoi", "registrar", "exam_head", "hod"];
+
 function AttendancePage() {
+  const { user } = useAccess();
+  if (user && OVERSIGHT_ROLES.includes(user.role)) return <MonitorView />;
+  return <MarkingView />;
+}
+
+// ─── Marker view (faculty / lab faculty) ───────────────────────────────
+function MarkingView() {
   const sections = useAcademicStore(s => s.sections);
   const subjects = useAcademicStore(s => s.subjects);
   const attendance = useAcademicStore(s => s.attendance);
@@ -119,6 +130,102 @@ function AttendancePage() {
           })}
         </div>
       </Card>
+    </div>
+  );
+}
+
+// ─── Oversight monitor (HOI / Registrar / Exam Head / HOD) ─────────────
+function MonitorView() {
+  const sections = useAcademicStore(s => s.sections);
+  const programs = useAcademicStore(s => s.programs);
+  const users = useUsersStore(s => s.users);
+  const { user } = useAccess();
+  const addAudit = useAccessStore(s => s.addAudit);
+  const [open, setOpen] = useState<string | null>(null);
+
+  // Aggregate per section
+  const rows = sections.map(sec => {
+    const stu = users.filter(u => u.role === "student" && u.sectionId === sec.id);
+    const avg = stu.length ? Math.round(stu.reduce((a, b) => a + (b.attendancePct ?? 0), 0) / stu.length) : 0;
+    const below75 = stu.filter(s => (s.attendancePct ?? 0) < 75).length;
+    const below65 = stu.filter(s => (s.attendancePct ?? 0) < 65).length;
+    const prog = programs.find(p => p.id === sec.programId);
+    return { sec, stu, avg, below75, below65, prog };
+  });
+  const all = users.filter(u => u.role === "student");
+  const overallAvg = all.length ? Math.round(all.reduce((a, b) => a + (b.attendancePct ?? 0), 0) / all.length) : 0;
+  const totalBelow75 = all.filter(s => (s.attendancePct ?? 0) < 75).length;
+  const totalBelow65 = all.filter(s => (s.attendancePct ?? 0) < 65).length;
+
+  const detail = open ? rows.find(r => r.sec.id === open) : null;
+
+  const nudgeSection = (sectionId: string) => {
+    const r = rows.find(x => x.sec.id === sectionId);
+    if (!r) return;
+    sendDeptAlertCascade(r.prog?.departmentId ?? "CSE", `Attendance flagged for ${r.sec.name}: ${r.below75} students below 75%.`, user?.id ?? "u_hoi");
+    addAudit({ id: `aud_${Date.now().toString(36)}`, at: new Date().toISOString(), actorId: user?.id ?? "u_hoi", module: "Attendance", action: `Flagged ${r.sec.name} to HOD`, reason: `${r.below75} students below 75%` });
+    toast.success("HOD notified", { description: `${r.sec.name} attendance flagged` });
+  };
+
+  return (
+    <div>
+      <PageHeader title="Attendance Monitor" subtitle="Institution-wide oversight — read-only, drill into any section" />
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        <KpiCard label="Avg attendance" value={`${overallAvg}%`} icon={TrendingUp} tone={overallAvg >= 75 ? "green" : "amber"} />
+        <KpiCard label="Sections" value={sections.length} icon={ClipboardCheck} />
+        <KpiCard label="Below 75%" value={totalBelow75} icon={AlertTriangle} tone="amber" />
+        <KpiCard label="Critical (<65%)" value={totalBelow65} icon={AlertTriangle} tone="red" />
+      </div>
+      <Card className="p-0">
+        <Table>
+          <TableHeader><TableRow><TableHead>Section</TableHead><TableHead>Program</TableHead><TableHead>Students</TableHead><TableHead>Avg Attendance</TableHead><TableHead>Below 75%</TableHead><TableHead>Critical</TableHead><TableHead></TableHead></TableRow></TableHeader>
+          <TableBody>
+            {rows.map(r => (
+              <TableRow key={r.sec.id} className="cursor-pointer" onClick={() => setOpen(r.sec.id)}>
+                <TableCell className="font-medium">{r.sec.name}</TableCell>
+                <TableCell className="text-xs">{r.prog?.name ?? "—"}</TableCell>
+                <TableCell>{r.stu.length}</TableCell>
+                <TableCell>
+                  <Badge variant="secondary" className={r.avg >= 80 ? "bg-lnx-green-500/10 text-lnx-green-500" : r.avg >= 70 ? "bg-lnx-amber-500/10 text-lnx-amber-500" : "bg-lnx-red-500/10 text-lnx-red-500"}>{r.avg}%</Badge>
+                </TableCell>
+                <TableCell>{r.below75}</TableCell>
+                <TableCell>{r.below65 > 0 ? <Badge variant="destructive">{r.below65}</Badge> : <span className="text-xs text-muted-foreground">0</span>}</TableCell>
+                <TableCell onClick={(e) => e.stopPropagation()} className="flex gap-1">
+                  <Button size="sm" variant="ghost" onClick={() => setOpen(r.sec.id)}><Eye className="h-3 w-3 mr-1" />View</Button>
+                  {r.below75 > 0 && <Button size="sm" variant="outline" onClick={() => nudgeSection(r.sec.id)}><Bell className="h-3 w-3 mr-1" />Flag HOD</Button>}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </Card>
+
+      <Dialog open={!!open} onOpenChange={(v) => !v && setOpen(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader><DialogTitle>{detail?.sec.name} · {detail?.prog?.name}</DialogTitle></DialogHeader>
+          {detail && (
+            <div className="max-h-[60vh] overflow-y-auto">
+              <Table>
+                <TableHeader><TableRow><TableHead>Roll</TableHead><TableHead>Student</TableHead><TableHead>Attendance</TableHead><TableHead></TableHead></TableRow></TableHeader>
+                <TableBody>
+                  {detail.stu.map(s => (
+                    <TableRow key={s.id}>
+                      <TableCell className="font-mono text-xs">{s.rollNo}</TableCell>
+                      <TableCell>
+                        <Link to="/people/students/$id" params={{ id: s.id }} className="hover:underline">{s.firstName} {s.lastName}</Link>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className={(s.attendancePct ?? 0) >= 75 ? "bg-lnx-green-500/10 text-lnx-green-500" : (s.attendancePct ?? 0) >= 65 ? "bg-lnx-amber-500/10 text-lnx-amber-500" : "bg-lnx-red-500/10 text-lnx-red-500"}>{s.attendancePct ?? 0}%</Badge>
+                      </TableCell>
+                      <TableCell><Button asChild size="sm" variant="ghost"><Link to="/people/students/$id" params={{ id: s.id }}>Profile</Link></Button></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
