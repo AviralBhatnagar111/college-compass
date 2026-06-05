@@ -1,15 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BarChart3, Download, FileText, Filter, Plus, Sparkles, Table as TableIcon, LineChart, PieChart, Wand2 } from "lucide-react";
+import { BarChart3, Download, FileText, Filter, Plus, Sparkles, Table as TableIcon, LineChart, PieChart, Wand2, Loader2 } from "lucide-react";
 import { KpiCard } from "@/components/common/KpiCard";
-import { useState } from "react";
+import { useAccessStore } from "@/stores";
+import { useAccess } from "@/lib/access";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/analytics/reports")({
   head: () => ({ meta: [{ title: "Reports — LearnNowX" }] }),
@@ -29,12 +31,36 @@ const REPORTS = [
 
 function ReportsPage() {
   const [category, setCategory] = useState("all");
+  const [running, setRunning] = useState<string | null>(null);
   const filtered = REPORTS.filter(r => category === "all" || r.category === category);
+  const addAudit = useAccessStore(s => s.addAudit);
+  const { user } = useAccess();
+
+  const run = (r: typeof REPORTS[number]) => {
+    setRunning(r.id);
+    setTimeout(() => {
+      setRunning(null);
+      addAudit({ id: `aud_${Date.now().toString(36)}`, at: new Date().toISOString(), actorId: user?.id ?? "u_hoi", module: "Analytics", action: `Ran report: ${r.name}` });
+      toast.success("Report ready", { description: `${r.name} downloaded` });
+      const blob = new Blob([`Report: ${r.name}\nCategory: ${r.category}\nGenerated: ${new Date().toLocaleString("en-IN")}\n`], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a"); a.href = url; a.download = `${r.name.replace(/\s+/g,"-")}.txt`; a.click();
+      URL.revokeObjectURL(url);
+    }, 900);
+  };
+  const schedule = (r: typeof REPORTS[number]) => {
+    addAudit({ id: `aud_${Date.now().toString(36)}`, at: new Date().toISOString(), actorId: user?.id ?? "u_hoi", module: "Analytics", action: `Scheduled report: ${r.name}`, reason: r.scheduled });
+    toast.success("Schedule updated", { description: `${r.name} · ${r.scheduled}` });
+  };
+  const generate = () => {
+    addAudit({ id: `aud_${Date.now().toString(36)}`, at: new Date().toISOString(), actorId: user?.id ?? "u_hoi", module: "Analytics", action: "Generated custom report" });
+    toast.success("Custom report generated");
+  };
 
   return (
     <div>
       <PageHeader title="Reports" subtitle="Pre-built reports + custom builder"
-        action={<Button><Plus className="h-4 w-4 mr-2" />Custom Report</Button>} />
+        action={<Button onClick={generate}><Plus className="h-4 w-4 mr-2" />Custom Report</Button>} />
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
         <KpiCard label="Pre-built" value={REPORTS.length} icon={FileText} tone="teal" />
         <KpiCard label="Scheduled" value={REPORTS.filter(r=>r.scheduled).length} icon={FileText} tone="amber" />
@@ -64,8 +90,10 @@ function ReportsPage() {
                 <h3 className="font-semibold text-lnx-navy-800">{r.name}</h3>
                 <p className="text-xs text-muted-foreground mt-1">Last run: {r.lastRun} · {r.scheduled}</p>
                 <div className="mt-4 flex gap-2">
-                  <Button variant="outline" size="sm" className="flex-1">Schedule</Button>
-                  <Button size="sm" className="flex-1"><Download className="h-3 w-3 mr-1" />Run</Button>
+                  <Button variant="outline" size="sm" className="flex-1" onClick={() => schedule(r)}>Schedule</Button>
+                  <Button size="sm" className="flex-1" disabled={running === r.id} onClick={() => run(r)}>
+                    {running === r.id ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" />Running…</> : <><Download className="h-3 w-3 mr-1" />Run</>}
+                  </Button>
                 </div>
               </Card>
             ))}
@@ -121,7 +149,10 @@ function ReportsPage() {
                 ))}
               </div>
             </div>
-            <div className="mt-6 flex gap-2"><Button variant="outline">Save as Template</Button><Button><Sparkles className="h-4 w-4 mr-2" />Generate Report</Button></div>
+            <div className="mt-6 flex gap-2">
+              <Button variant="outline" onClick={() => toast.success("Saved as template")}>Save as Template</Button>
+              <Button onClick={generate}><Sparkles className="h-4 w-4 mr-2" />Generate Report</Button>
+            </div>
           </Card>
         </TabsContent>
 
@@ -130,7 +161,7 @@ function ReportsPage() {
             {REPORTS.filter(r=>r.scheduled).map(r => (
               <div key={r.id} className="p-4 flex items-center justify-between">
                 <div><p className="font-medium text-sm">{r.name}</p><p className="text-xs text-muted-foreground">{r.category} · Runs {r.scheduled}</p></div>
-                <div className="flex items-center gap-2"><Badge variant="secondary">{r.scheduled}</Badge><Button variant="ghost" size="sm">Edit</Button></div>
+                <div className="flex items-center gap-2"><Badge variant="secondary">{r.scheduled}</Badge><Button variant="ghost" size="sm" onClick={() => schedule(r)}>Edit</Button></div>
               </div>
             ))}
           </div></Card>
