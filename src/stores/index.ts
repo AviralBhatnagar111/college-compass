@@ -53,7 +53,7 @@ export const useUsersStore = create<UsersState>()(
       removeUser: (id) => set((s) => ({ users: s.users.filter(u => u.id !== id) })),
       getUser: (id) => get().users.find(u => u.id === id),
     }),
-    { name: "lnx-users" }
+    { name: "lnx-users-v2" }
   )
 );
 
@@ -128,7 +128,7 @@ export const useAcademicStore = create<AcademicState>()(
       }),
       updateTimetableSlot: (id, patch) => set((s) => ({ timetable: s.timetable.map(t => t.id === id ? { ...t, ...patch } : t) })),
     }),
-    { name: "lnx-academic" }
+    { name: "lnx-academic-v2" }
   )
 );
 
@@ -180,7 +180,7 @@ export const useFinanceStore = create<FinanceState>()(
       addStructure: (f) => set((s) => ({ structures: [f, ...s.structures] })),
       addLedger: (e) => set((s) => ({ ledger: [e, ...s.ledger] })),
     }),
-    { name: "lnx-finance" }
+    { name: "lnx-finance-v2" }
   )
 );
 
