@@ -37,6 +37,8 @@ function DefaultersPage() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [defaultChannels, setDefaultChannels] = useState<("sms" | "whatsapp" | "email")[]>(["sms"]);
   const [target, setTarget] = useState<string[]>([]);
+  const [blockId, setBlockId] = useState<string | null>(null);
+  const blockRow = blockId ? rows.find(r => r.s.id === blockId) : null;
 
   const openBulk = (channels: ("sms" | "whatsapp" | "email")[]) => {
     if (sel.size === 0) return;
