@@ -110,6 +110,10 @@ interface AcademicState {
   attendance: AttendanceRecord[];
   saveAttendance: (record: AttendanceRecord) => void;
   updateTimetableSlot: (id: string, patch: Partial<TimetableSlot>) => void;
+  addProgram: (p: Program) => void;
+  addSubject: (s: Subject) => void;
+  addSection: (s: Section) => void;
+  addRoom: (r: Room) => void;
 }
 
 export const useAcademicStore = create<AcademicState>()(
@@ -127,6 +131,10 @@ export const useAcademicStore = create<AcademicState>()(
         return { attendance: [r, ...filtered] };
       }),
       updateTimetableSlot: (id, patch) => set((s) => ({ timetable: s.timetable.map(t => t.id === id ? { ...t, ...patch } : t) })),
+      addProgram: (p) => set((s) => ({ programs: [...s.programs, p] })),
+      addSubject: (sub) => set((s) => ({ subjects: [...s.subjects, sub] })),
+      addSection: (sec) => set((s) => ({ sections: [...s.sections, sec] })),
+      addRoom: (r) => set((s) => ({ rooms: [...s.rooms, r] })),
     }),
     { name: "lnx-academic-v2" }
   )
