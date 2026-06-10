@@ -22,9 +22,25 @@ const INR = (n: number) => "₹" + n.toLocaleString("en-IN");
 
 function FeeStructuresPage() {
   const structures = useFinanceStore(s => s.structures);
+  const addStructure = useFinanceStore(s => s.addStructure);
+  const programs = useAcademicStore(s => s.programs);
+  const users = useUsersStore(s => s.users);
   const [open, setOpen] = useState(false);
+  const [detail, setDetail] = useState<string | null>(null);
+  const [meta, setMeta] = useState({ name: "", batch: "2026-30", programId: "P_CSE", category: "General" });
   const [installments, setInstallments] = useState([{ label: "Installment 1", amount: 50000 }, { label: "Installment 2", amount: 50000 }]);
   const total = installments.reduce((s,i)=>s+(+i.amount||0),0);
+  const sel = structures.find(s => s.id === detail);
+  const selStudents = sel ? users.filter(u => u.role === "student" && u.programId === sel.programId) : [];
+
+  const handleSave = () => {
+    if (!meta.name) { toast.error("Name required"); return; }
+    const id = `FS_${meta.programId}_${Date.now().toString(36)}`;
+    addStructure({ id, name: meta.name, programId: meta.programId, batch: meta.batch, total, installments, assignedCount: 0 });
+    toast.success("Structure saved", { description: `${meta.name} · ₹${total.toLocaleString("en-IN")}` });
+    setOpen(false);
+  };
+
 
   return (
     <div>
