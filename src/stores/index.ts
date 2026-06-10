@@ -227,6 +227,6 @@ export const useComplianceStore = create<ComplianceState>()(
 // ─── Reset helper ────────────────────────────────────────────────────────
 export const resetAllData = () => {
   if (typeof window === "undefined") return;
-  ["lnx-auth","lnx-users","lnx-access","lnx-academic","lnx-placement","lnx-finance","lnx-comm","lnx-compliance"].forEach(k => localStorage.removeItem(k));
+  ["lnx-auth","lnx-users","lnx-users-v2","lnx-access","lnx-academic","lnx-academic-v2","lnx-placement","lnx-finance","lnx-finance-v2","lnx-comm","lnx-compliance"].forEach(k => localStorage.removeItem(k));
   window.location.href = "/login";
 };
