@@ -101,6 +101,7 @@ function DefaultersPage() {
                 <TableCell className="flex gap-1">
                   <Button variant="ghost" size="sm" onClick={() => openSingle(r.s.id)}><Bell className="h-3 w-3 mr-1" />Remind</Button>
                   <Button asChild variant="ghost" size="sm"><Link to="/finance/ledger"><FileText className="h-3 w-3 mr-1" />Ledger</Link></Button>
+                  <Button variant="ghost" size="sm" onClick={() => setBlockId(r.s.id)} className="text-lnx-red-500 hover:text-lnx-red-500"><Lock className="h-3 w-3 mr-1" />Block</Button>
                 </TableCell>
               </TableRow>
             ))}
