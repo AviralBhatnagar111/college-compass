@@ -115,6 +115,11 @@ function DefaultersPage() {
         body={body} recipients={recipients} defaultChannels={defaultChannels}
         onSend={handleSend}
       />
+      <ConfirmDialog open={!!blockId} onOpenChange={(v) => !v && setBlockId(null)}
+        title={`Block exam access for ${blockRow?.s.firstName ?? ""}?`}
+        description={`Student becomes exam-ineligible until dues of ${blockRow ? INR(blockRow.outstanding) : ""} are cleared. Parent will be notified. Cascades to Examinations hall-ticket eligibility.`}
+        confirmLabel="Block Access" tone="danger" withComment
+        onConfirm={() => { if (blockRow) { blockExamAccessCascade(blockRow.s.id, user?.id ?? "u_finance_head"); toast.error(`Exam access blocked for ${blockRow.s.firstName}`); } }} />
     </div>
   );
 }
