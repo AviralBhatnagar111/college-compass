@@ -36,7 +36,8 @@ function FeeStructuresPage() {
   const handleSave = () => {
     if (!meta.name) { toast.error("Name required"); return; }
     const id = `FS_${meta.programId}_${Date.now().toString(36)}`;
-    addStructure({ id, name: meta.name, programId: meta.programId, batch: meta.batch, total, installments, assignedCount: 0 });
+    const inst = installments.map((i, idx) => ({ ...i, dueDate: new Date(Date.now() + (idx * 180) * 86400000).toISOString() }));
+    addStructure({ id, name: meta.name, programId: meta.programId, batch: meta.batch, total, installments: inst, assignedCount: 0 });
     toast.success("Structure saved", { description: `${meta.name} · ₹${total.toLocaleString("en-IN")}` });
     setOpen(false);
   };
