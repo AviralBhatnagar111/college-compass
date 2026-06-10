@@ -314,12 +314,15 @@ export const seedFeeStructures: FeeStructure[] = [
   { id: "FS_MBA_25", name: "MBA 2025-27", programId: "P_MBA", batch: "2025-27", total: 180000, installments: [{ label: "Installment 1", amount: 90000, dueDate: daysAhead(10) }, { label: "Installment 2", amount: 90000, dueDate: daysAhead(180) }], assignedCount: 0 },
 ];
 
-// 140 students. Charge ₹60K each = ₹84L per sem.
-// First 126 paid in full (collected ₹75.6L). 14 defaulters = outstanding ₹8,17,489.
+// 140 students. 126 paid Sem 5 tuition ₹60K each = ₹75.6L collected.
+// 14 defaulters with variable balances summing to ₹8,17,489 (matches Defaulters page).
+const DEFAULTER_AMOUNTS = [85000, 72000, 68000, 63000, 61000, 58000, 55000, 54000, 51000, 49000, 47000, 42000, 38000, 74489];
 const _ledger: LedgerEntry[] = [];
 students.forEach((stu, i) => {
-  _ledger.push({ id: `L_${stu.id}_C`, studentId: stu.id, date: daysAgo(60), head: "Tuition Fee — Sem 5", charge: 60000, balance: 60000 });
-  if (i < students.length - 14) {
+  const isDefaulter = i >= students.length - 14;
+  const amount = isDefaulter ? DEFAULTER_AMOUNTS[i - (students.length - 14)] : 60000;
+  _ledger.push({ id: `L_${stu.id}_C`, studentId: stu.id, date: daysAgo(60), head: "Tuition Fee — Sem 5", charge: amount, balance: amount });
+  if (!isDefaulter) {
     _ledger.push({ id: `L_${stu.id}_P`, studentId: stu.id, date: daysAgo(45 - (i % 30)), head: "Online Payment (Razorpay)", payment: 60000, balance: 0 });
   }
 });
