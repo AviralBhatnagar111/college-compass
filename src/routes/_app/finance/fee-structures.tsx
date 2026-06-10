@@ -53,8 +53,10 @@ function FeeStructuresPage() {
               <DialogHeader><DialogTitle>Fee Structure Builder</DialogTitle></DialogHeader>
               <div className="space-y-4 py-2">
                 <div className="grid grid-cols-2 gap-3">
-                  <div><Label>Name</Label><Input placeholder="B.Tech CSE 2026-30" /></div>
-                  <div><Label>Batch</Label><Input placeholder="2026-30" /></div>
+                  <div><Label>Name</Label><Input value={meta.name} onChange={e => setMeta({...meta, name: e.target.value})} placeholder="B.Tech CSE 2026-30" /></div>
+                  <div><Label>Batch</Label><Input value={meta.batch} onChange={e => setMeta({...meta, batch: e.target.value})} /></div>
+                  <div><Label>Program</Label><Select value={meta.programId} onValueChange={v => setMeta({...meta, programId: v})}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent>{programs.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent></Select></div>
+                  <div><Label>Category</Label><Select value={meta.category} onValueChange={v => setMeta({...meta, category: v})}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="General">General</SelectItem><SelectItem value="SC/ST/OBC">SC / ST / OBC</SelectItem><SelectItem value="EWS">EWS</SelectItem><SelectItem value="NRI">NRI</SelectItem><SelectItem value="Management">Management</SelectItem></SelectContent></Select></div>
                 </div>
                 <div>
                   <div className="flex items-center justify-between mb-2"><Label>Installments</Label><Button size="sm" variant="ghost" onClick={() => setInstallments([...installments, { label: `Installment ${installments.length+1}`, amount: 0 }])}><Plus className="h-3 w-3 mr-1" />Add</Button></div>
@@ -69,13 +71,13 @@ function FeeStructuresPage() {
                   </div>
                 </div>
                 <div className="flex items-center justify-between rounded-md bg-accent p-3">
-                  <span className="text-sm font-medium">Total</span>
+                  <span className="text-sm font-medium">Total · {meta.category}</span>
                   <span className="text-xl font-bold tabular text-lnx-teal-500">{INR(total)}</span>
                 </div>
               </div>
               <DialogFooter>
                 <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-                <Button onClick={() => { toast.success("Structure saved"); setOpen(false); }}>Save</Button>
+                <Button onClick={handleSave}>Save & Create Charges</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
