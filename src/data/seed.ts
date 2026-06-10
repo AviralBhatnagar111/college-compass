@@ -132,6 +132,20 @@ export const seedFaculty: User[] = [
   mkUser({ id: "u_fac_shilpa", firstName: "Shilpa", lastName: "Menon", role: "faculty", designation: "Asst. Professor", department: "BIOTECH", packId: "faculty_core", scope: { level: "section", ids: ["BIO-E1"] } }),
   mkUser({ id: "u_fac_rakesh", firstName: "Rakesh", lastName: "Naidu", role: "faculty", designation: "Asst. Professor", department: "ME", packId: "faculty_core", scope: { level: "section", ids: ["ME-C1"] } }),
   mkUser({ id: "u_fac_lab2", firstName: "Pooja", lastName: "Joshi", role: "lab_faculty", designation: "Lab Faculty", department: "ECE", packId: "lab_faculty_core", scope: { level: "section", ids: ["ECE-B1"] } }),
+  mkUser({ id: "u_fac_ramesh", firstName: "Ramesh", lastName: "Krishnan", role: "faculty", designation: "Asso. Professor", department: "CSE", packId: "faculty_core", scope: { level: "section", ids: ["CSE-A1","CSE-A2"] } }),
+  mkUser({ id: "u_fac_lata", firstName: "Lata", lastName: "Desai", role: "faculty", designation: "Asst. Professor", department: "CSE", packId: "faculty_core", scope: { level: "section", ids: ["CSE-A1"] } }),
+  mkUser({ id: "u_fac_vivek", firstName: "Vivek", lastName: "Saxena", role: "faculty", designation: "Asst. Professor", department: "CSE", packId: "faculty_core", scope: { level: "section", ids: ["CSE-A2"] } }),
+  mkUser({ id: "u_fac_kavita", firstName: "Kavita", lastName: "Bhatia", role: "faculty", designation: "Professor", department: "ECE", packId: "faculty_core", scope: { level: "section", ids: ["ECE-B1"] } }),
+  mkUser({ id: "u_fac_ashok", firstName: "Ashok", lastName: "Tiwari", role: "faculty", designation: "Asst. Professor", department: "ECE", packId: "faculty_core", scope: { level: "section", ids: ["ECE-B1"] } }),
+  mkUser({ id: "u_fac_manish", firstName: "Manish", lastName: "Agarwal", role: "faculty", designation: "Asso. Professor", department: "ME", packId: "faculty_core", scope: { level: "section", ids: ["ME-C1"] } }),
+  mkUser({ id: "u_fac_smita", firstName: "Smita", lastName: "Kapoor", role: "faculty", designation: "Asst. Professor", department: "ME", packId: "faculty_core", scope: { level: "section", ids: ["ME-C1"] } }),
+  mkUser({ id: "u_fac_naveen", firstName: "Naveen", lastName: "Sinha", role: "faculty", designation: "Asst. Professor", department: "CIVIL", packId: "faculty_core", scope: { level: "section", ids: ["CIVIL-D1"] } }),
+  mkUser({ id: "u_fac_geetha", firstName: "Geetha", lastName: "Pillai", role: "faculty", designation: "Asso. Professor", department: "CIVIL", packId: "faculty_core", scope: { level: "section", ids: ["CIVIL-D1"] } }),
+  mkUser({ id: "u_fac_rajan", firstName: "Rajan", lastName: "Bose", role: "faculty", designation: "Asst. Professor", department: "BIOTECH", packId: "faculty_core", scope: { level: "section", ids: ["BIO-E1"] } }),
+  mkUser({ id: "u_fac_kavya", firstName: "Kavya", lastName: "Chatterjee", role: "faculty", designation: "Asst. Professor", department: "BIOTECH", packId: "faculty_core", scope: { level: "section", ids: ["BIO-E1"] } }),
+  mkUser({ id: "u_fac_alok", firstName: "Alok", lastName: "Malhotra", role: "faculty", designation: "Professor", department: "MBA", packId: "faculty_core", scope: { level: "section", ids: ["MBA-F1"] } }),
+  mkUser({ id: "u_fac_nidhi", firstName: "Nidhi", lastName: "Khurana", role: "faculty", designation: "Asst. Professor", department: "MBA", packId: "faculty_core", scope: { level: "section", ids: ["MBA-F1"] } }),
+  mkUser({ id: "u_fac_lab3", firstName: "Suresh", lastName: "Patel", role: "lab_faculty", designation: "Lab Faculty", department: "ME", packId: "lab_faculty_core", scope: { level: "section", ids: ["ME-C1"] } }),
 ];
 
 export const seedOps: User[] = [
