@@ -8,11 +8,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useUsersStore } from "@/stores";
 import { useAccess } from "@/lib/access";
 import { KpiCard } from "@/components/common/KpiCard";
-import { AlertTriangle, MessageSquare, Mail, IndianRupee, Phone, Bell, FileText } from "lucide-react";
+import { AlertTriangle, MessageSquare, Mail, IndianRupee, Phone, Bell, FileText, Lock } from "lucide-react";
 import { Avatar } from "@/components/common/Avatar";
 import { useState } from "react";
-import { MultiChannelPreviewDialog } from "@/components/dashboard/ActionQueue";
-import { sendFeeReminderCascade } from "@/lib/cascade";
+import { MultiChannelPreviewDialog, ConfirmDialog } from "@/components/dashboard/ActionQueue";
+import { sendFeeReminderCascade, blockExamAccessCascade } from "@/lib/cascade";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/finance/defaulters")({
@@ -37,6 +37,8 @@ function DefaultersPage() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [defaultChannels, setDefaultChannels] = useState<("sms" | "whatsapp" | "email")[]>(["sms"]);
   const [target, setTarget] = useState<string[]>([]);
+  const [blockId, setBlockId] = useState<string | null>(null);
+  const blockRow = blockId ? rows.find(r => r.s.id === blockId) : null;
 
   const openBulk = (channels: ("sms" | "whatsapp" | "email")[]) => {
     if (sel.size === 0) return;
@@ -99,6 +101,7 @@ function DefaultersPage() {
                 <TableCell className="flex gap-1">
                   <Button variant="ghost" size="sm" onClick={() => openSingle(r.s.id)}><Bell className="h-3 w-3 mr-1" />Remind</Button>
                   <Button asChild variant="ghost" size="sm"><Link to="/finance/ledger"><FileText className="h-3 w-3 mr-1" />Ledger</Link></Button>
+                  <Button variant="ghost" size="sm" onClick={() => setBlockId(r.s.id)} className="text-lnx-red-500 hover:text-lnx-red-500"><Lock className="h-3 w-3 mr-1" />Block</Button>
                 </TableCell>
               </TableRow>
             ))}
@@ -112,6 +115,11 @@ function DefaultersPage() {
         body={body} recipients={recipients} defaultChannels={defaultChannels}
         onSend={handleSend}
       />
+      <ConfirmDialog open={!!blockId} onOpenChange={(v) => !v && setBlockId(null)}
+        title={`Block exam access for ${blockRow?.s.firstName ?? ""}?`}
+        description={`Student becomes exam-ineligible until dues of ${blockRow ? INR(blockRow.outstanding) : ""} are cleared. Parent will be notified. Cascades to Examinations hall-ticket eligibility.`}
+        confirmLabel="Block Access" tone="danger" withComment
+        onConfirm={() => { if (blockRow) { blockExamAccessCascade(blockRow.s.id, user?.id ?? "u_finance_head"); toast.error(`Exam access blocked for ${blockRow.s.firstName}`); } }} />
     </div>
   );
 }

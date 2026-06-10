@@ -53,7 +53,7 @@ export const useUsersStore = create<UsersState>()(
       removeUser: (id) => set((s) => ({ users: s.users.filter(u => u.id !== id) })),
       getUser: (id) => get().users.find(u => u.id === id),
     }),
-    { name: "lnx-users" }
+    { name: "lnx-users-v2" }
   )
 );
 
@@ -110,6 +110,10 @@ interface AcademicState {
   attendance: AttendanceRecord[];
   saveAttendance: (record: AttendanceRecord) => void;
   updateTimetableSlot: (id: string, patch: Partial<TimetableSlot>) => void;
+  addProgram: (p: Program) => void;
+  addSubject: (s: Subject) => void;
+  addSection: (s: Section) => void;
+  addRoom: (r: Room) => void;
 }
 
 export const useAcademicStore = create<AcademicState>()(
@@ -127,8 +131,12 @@ export const useAcademicStore = create<AcademicState>()(
         return { attendance: [r, ...filtered] };
       }),
       updateTimetableSlot: (id, patch) => set((s) => ({ timetable: s.timetable.map(t => t.id === id ? { ...t, ...patch } : t) })),
+      addProgram: (p) => set((s) => ({ programs: [...s.programs, p] })),
+      addSubject: (sub) => set((s) => ({ subjects: [...s.subjects, sub] })),
+      addSection: (sec) => set((s) => ({ sections: [...s.sections, sec] })),
+      addRoom: (r) => set((s) => ({ rooms: [...s.rooms, r] })),
     }),
-    { name: "lnx-academic" }
+    { name: "lnx-academic-v2" }
   )
 );
 
@@ -180,7 +188,7 @@ export const useFinanceStore = create<FinanceState>()(
       addStructure: (f) => set((s) => ({ structures: [f, ...s.structures] })),
       addLedger: (e) => set((s) => ({ ledger: [e, ...s.ledger] })),
     }),
-    { name: "lnx-finance" }
+    { name: "lnx-finance-v2" }
   )
 );
 
@@ -227,6 +235,6 @@ export const useComplianceStore = create<ComplianceState>()(
 // ─── Reset helper ────────────────────────────────────────────────────────
 export const resetAllData = () => {
   if (typeof window === "undefined") return;
-  ["lnx-auth","lnx-users","lnx-access","lnx-academic","lnx-placement","lnx-finance","lnx-comm","lnx-compliance"].forEach(k => localStorage.removeItem(k));
+  ["lnx-auth","lnx-users","lnx-users-v2","lnx-access","lnx-academic","lnx-academic-v2","lnx-placement","lnx-finance","lnx-finance-v2","lnx-comm","lnx-compliance"].forEach(k => localStorage.removeItem(k));
   window.location.href = "/login";
 };

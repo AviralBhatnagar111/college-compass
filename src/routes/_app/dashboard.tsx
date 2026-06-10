@@ -136,7 +136,7 @@ function HoiDashboard() {
       <DashboardHero user={user!} kpis={
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
           <Link to="/people/students"><KpiCard label="Active Students" value={students.length} icon={GraduationCap} delta={{ value: "+12", up: true }} /></Link>
-          <Link to="/people/faculty"><KpiCard label="Faculty Strength" value={`${faculty.length}/68`} icon={Users} delta={{ value: "4 vacant", up: false }} /></Link>
+          <Link to="/people/faculty"><KpiCard label="Faculty Strength" value={`${faculty.length}/30`} icon={Users} delta={{ value: `${30 - faculty.length} vacant`, up: false }} /></Link>
           <Link to="/academic/attendance"><KpiCard label="Today's Attendance" value="91%" icon={Activity} tone="teal" /></Link>
           <Link to="/finance/ledger"><KpiCard label="Month Collection" value={lakhs(48300000)} icon={Wallet} delta={{ value: "98% of target", up: true }} /></Link>
           <Link to="/placement/offers"><KpiCard label="Placement YTD" value="76%" icon={Briefcase} tone="amber" /></Link>
