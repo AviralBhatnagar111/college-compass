@@ -8,11 +8,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useUsersStore } from "@/stores";
 import { useAccess } from "@/lib/access";
 import { KpiCard } from "@/components/common/KpiCard";
-import { AlertTriangle, MessageSquare, Mail, IndianRupee, Phone, Bell, FileText } from "lucide-react";
+import { AlertTriangle, MessageSquare, Mail, IndianRupee, Phone, Bell, FileText, Lock } from "lucide-react";
 import { Avatar } from "@/components/common/Avatar";
 import { useState } from "react";
-import { MultiChannelPreviewDialog } from "@/components/dashboard/ActionQueue";
-import { sendFeeReminderCascade } from "@/lib/cascade";
+import { MultiChannelPreviewDialog, ConfirmDialog } from "@/components/dashboard/ActionQueue";
+import { sendFeeReminderCascade, blockExamAccessCascade } from "@/lib/cascade";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/finance/defaulters")({
