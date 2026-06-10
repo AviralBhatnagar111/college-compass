@@ -84,7 +84,7 @@ function FeeStructuresPage() {
         } />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {structures.map(s => (
-          <Card key={s.id} className="p-5">
+          <Card key={s.id} className="p-5 cursor-pointer hover:border-lnx-teal-500 transition" onClick={() => setDetail(s.id)}>
             <h3 className="font-semibold text-lnx-navy-800">{s.name}</h3>
             <p className="text-xs text-muted-foreground">{s.batch}</p>
             <p className="mt-3 text-2xl font-bold tabular text-lnx-teal-500"><IndianRupee className="h-5 w-5 inline" />{s.total.toLocaleString("en-IN")}</p>
@@ -95,11 +95,27 @@ function FeeStructuresPage() {
             </div>
             <div className="mt-4 flex items-center justify-between pt-3 border-t">
               <Badge variant="secondary"><Users className="h-3 w-3 mr-1" />{s.assignedCount} assigned</Badge>
-              <Button variant="ghost" size="sm">Edit</Button>
+              <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); toast("Edit dialog (using Build Structure form pre-filled)"); }}>Edit</Button>
             </div>
           </Card>
         ))}
       </div>
+
+      <Sheet open={!!detail} onOpenChange={v => !v && setDetail(null)}>
+        <SheetContent className="w-[480px] sm:max-w-[480px]">
+          <SheetHeader><SheetTitle>{sel?.name}</SheetTitle></SheetHeader>
+          {sel && (
+            <div className="mt-4 space-y-4 text-sm">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="rounded border p-3"><p className="text-xs text-muted-foreground">Total</p><p className="font-bold tabular text-lnx-teal-500">{INR(sel.total)}</p></div>
+                <div className="rounded border p-3"><p className="text-xs text-muted-foreground">Students assigned</p><p className="font-medium">{selStudents.length}</p></div>
+              </div>
+              <div><p className="text-xs font-semibold uppercase text-muted-foreground mb-2">Installments</p><div className="space-y-1">{sel.installments.map((i,idx)=> <div key={idx} className="flex justify-between rounded border p-2 text-xs"><div><div className="font-medium">{i.label}</div><div className="text-muted-foreground">Due: {new Date(i.dueDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</div></div><div className="tabular font-semibold">{INR(i.amount)}</div></div>)}</div></div>
+              <div><p className="text-xs font-semibold uppercase text-muted-foreground mb-2">Assigned students ({selStudents.length})</p><div className="space-y-1 max-h-48 overflow-auto">{selStudents.slice(0,40).map(s => <div key={s.id} className="flex justify-between rounded border p-2 text-xs"><span>{s.firstName} {s.lastName}</span><span className="font-mono text-muted-foreground">{s.rollNo}</span></div>)}</div></div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
