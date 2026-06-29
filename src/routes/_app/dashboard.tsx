@@ -209,7 +209,7 @@ function HoiDashboard() {
           <RiskFlag tone="red" icon={AlertTriangle} title="ME Dept attendance fell to 68% (below threshold)"
             action={<Button size="sm" variant="outline" className="h-6 text-[11px]" onClick={(e) => { e.stopPropagation(); setAlertDept("ME"); }}>Send alert to HOD Rohan</Button>}
             onClick={() => navigate({ to: "/academic/attendance" })} />
-          <RiskFlag tone="amber" icon={Wallet} title="₹47L total dues from 23 students (top defaulters)"
+          <RiskFlag tone="amber" icon={Wallet} title="₹8,17,489 dues from 14 students (4 critical)"
             onClick={() => navigate({ to: "/finance/defaulters" })} />
           <RiskFlag tone="amber" icon={ShieldCheck} title="NAAC C3 (Research) at 42% — AQAR due in 38 days"
             onClick={() => navigate({ to: "/compliance/naac" })} />
