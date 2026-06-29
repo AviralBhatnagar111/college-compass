@@ -138,7 +138,7 @@ function HoiDashboard() {
           <Link to="/people/students"><KpiCard label="Active Students" value={students.length} icon={GraduationCap} delta={{ value: "+12", up: true }} /></Link>
           <Link to="/people/faculty"><KpiCard label="Faculty Strength" value={`${faculty.length}/30`} icon={Users} delta={{ value: `${30 - faculty.length} vacant`, up: false }} /></Link>
           <Link to="/academic/attendance"><KpiCard label="Today's Attendance" value="91%" icon={Activity} tone="teal" /></Link>
-          <Link to="/finance/ledger"><KpiCard label="Month Collection" value={lakhs(48300000)} icon={Wallet} delta={{ value: "98% of target", up: true }} /></Link>
+          <Link to="/finance/ledger"><KpiCard label="Month Collection" value={lakhs(2180000)} icon={Wallet} delta={{ value: "YTD ₹1.05 Cr", up: true }} /></Link>
           <Link to="/placement/offers"><KpiCard label="Placement YTD" value="76%" icon={Briefcase} tone="amber" /></Link>
           <Link to="/compliance/naac"><KpiCard label="NAAC Readiness" value={`${naacReadiness}%`} icon={ShieldCheck} tone={naacReadiness >= 80 ? "teal" : "amber"} /></Link>
         </div>
