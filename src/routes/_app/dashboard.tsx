@@ -181,7 +181,10 @@ function HoiDashboard() {
                         <div className="flex flex-shrink-0 gap-1">
                           <Button size="sm" onClick={() => setConfirmReq(req)} className="h-7 bg-lnx-teal-500 text-xs text-white hover:bg-lnx-teal-500/90">Approve</Button>
                           <Button size="sm" variant="ghost" onClick={() => setRejectReq(req)} className="h-7 text-xs">Reject</Button>
-                          <Button size="sm" variant="ghost" onClick={() => navigate({ to: "/admin/access-control/requests" })} className="h-7 text-xs">Details</Button>
+                          <Button size="sm" variant="ghost" onClick={() => {
+                            const map: Record<string, any> = { access: "/admin/access-control/requests", waivers: "/finance/budget", refunds: "/finance/ledger", visibility: "/admin/access-control/requests", scholarship: "/finance/scholarships" };
+                            navigate({ to: map[tab] ?? "/admin/access-control/requests" });
+                          }} className="h-7 text-xs">Details</Button>
                         </div>
                       </li>
                     );
