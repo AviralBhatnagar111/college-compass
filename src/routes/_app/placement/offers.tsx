@@ -11,8 +11,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogT
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { usePlacementStore, useUsersStore, useAccessStore, useCommStore } from "@/stores";
 import { useAccess } from "@/lib/access";
+import { usePolicyStore } from "@/lib/policies";
 import { KpiCard } from "@/components/common/KpiCard";
-import { BadgeCheck, Clock, IndianRupee, Plus } from "lucide-react";
+import { BadgeCheck, Clock, IndianRupee, Plus, Target, TrendingUp } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 import { Avatar } from "@/components/common/Avatar";
 import { toast } from "sonner";
 
@@ -82,6 +84,57 @@ function OffersPage() {
             </DialogContent>
           </Dialog>
         } />
+      {(() => {
+        const policies = usePolicyStore.getState().policies;
+        const finalYear = users.filter(u => u.role === "student" && ((u as any).year ?? 4) >= 4);
+        const eligible = finalYear.length || 80;
+        const placedIds = new Set(offers.filter(o => o.status === "accepted").map(o => o.studentId));
+        const placed = placedIds.size;
+        const pct = eligible ? Math.round((placed / eligible) * 100) : 0;
+        const target = policies.placementTargetPct;
+        const delta = pct - target;
+        // Section split
+        const sectionStats: Record<string, { total: number; placed: number }> = {};
+        finalYear.forEach(s => {
+          const sec = s.sectionId ?? "—";
+          sectionStats[sec] = sectionStats[sec] ?? { total: 0, placed: 0 };
+          sectionStats[sec].total += 1;
+          if (placedIds.has(s.id)) sectionStats[sec].placed += 1;
+        });
+        return (
+          <Card className="p-5 mb-4 border-l-4 border-l-lnx-teal-500">
+            <div className="flex items-start justify-between mb-3 flex-wrap gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Target className="h-4 w-4 text-lnx-teal-500" />
+                  <h3 className="font-semibold text-lnx-navy-800">Season Reconciliation · 2025-26</h3>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">{placed} of {eligible} eligible final-year students placed. Target {target}% (policy in Settings).</p>
+              </div>
+              <Badge variant="secondary" className={
+                delta >= 0 ? "bg-lnx-green-500/10 text-lnx-green-500" :
+                delta >= -10 ? "bg-lnx-amber-500/10 text-lnx-amber-500" :
+                "bg-lnx-red-500/10 text-lnx-red-500"
+              }>
+                <TrendingUp className="h-3 w-3 mr-1" />{pct}% achieved ({delta >= 0 ? "+" : ""}{delta} pp vs target)
+              </Badge>
+            </div>
+            <Progress value={Math.min(pct, 100)} className="h-2" />
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2 mt-4">
+              {Object.entries(sectionStats).slice(0, 6).map(([sec, st]) => {
+                const sp = st.total ? Math.round((st.placed / st.total) * 100) : 0;
+                return (
+                  <div key={sec} className="rounded border p-2">
+                    <div className="flex justify-between text-[10px] mb-1"><span className="font-mono">{sec}</span><span className="font-semibold">{sp}%</span></div>
+                    <Progress value={sp} className="h-1" />
+                    <p className="text-[10px] text-muted-foreground mt-1">{st.placed}/{st.total}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+        );
+      })()}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
         <KpiCard label="Total" value={offers.length} icon={BadgeCheck} tone="teal" />
         <KpiCard label="Accepted" value={offers.filter(o=>o.status==="accepted").length} icon={BadgeCheck} tone="green" />
