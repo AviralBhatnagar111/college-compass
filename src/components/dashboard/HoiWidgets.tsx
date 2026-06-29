@@ -117,7 +117,7 @@ export function AssignTaskDialog({
       id: `aud_${Date.now().toString(36)}`,
       at: new Date().toISOString(),
       actorId: byUserId, module: "Tasks", action: "task.created",
-      detail: `${task.title} → ${task.assigneeName}`,
+      reason: `${task.title} → ${task.assigneeName}`,
     });
     toast.success("Task assigned", { description: `${assignedUser.firstName} · due ${format(new Date(due), "dd MMM")}` });
     onOpenChange(false);
