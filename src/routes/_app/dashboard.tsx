@@ -138,7 +138,7 @@ function HoiDashboard() {
           <Link to="/people/students"><KpiCard label="Active Students" value={students.length} icon={GraduationCap} delta={{ value: "+12", up: true }} /></Link>
           <Link to="/people/faculty"><KpiCard label="Faculty Strength" value={`${faculty.length}/30`} icon={Users} delta={{ value: `${30 - faculty.length} vacant`, up: false }} /></Link>
           <Link to="/academic/attendance"><KpiCard label="Today's Attendance" value="91%" icon={Activity} tone="teal" /></Link>
-          <Link to="/finance/ledger"><KpiCard label="Month Collection" value={lakhs(48300000)} icon={Wallet} delta={{ value: "98% of target", up: true }} /></Link>
+          <Link to="/finance/ledger"><KpiCard label="Month Collection" value={lakhs(2180000)} icon={Wallet} delta={{ value: "YTD ₹1.05 Cr", up: true }} /></Link>
           <Link to="/placement/offers"><KpiCard label="Placement YTD" value="76%" icon={Briefcase} tone="amber" /></Link>
           <Link to="/compliance/naac"><KpiCard label="NAAC Readiness" value={`${naacReadiness}%`} icon={ShieldCheck} tone={naacReadiness >= 80 ? "teal" : "amber"} /></Link>
         </div>
@@ -181,7 +181,10 @@ function HoiDashboard() {
                         <div className="flex flex-shrink-0 gap-1">
                           <Button size="sm" onClick={() => setConfirmReq(req)} className="h-7 bg-lnx-teal-500 text-xs text-white hover:bg-lnx-teal-500/90">Approve</Button>
                           <Button size="sm" variant="ghost" onClick={() => setRejectReq(req)} className="h-7 text-xs">Reject</Button>
-                          <Button size="sm" variant="ghost" onClick={() => navigate({ to: "/admin/access-control/requests" })} className="h-7 text-xs">Details</Button>
+                          <Button size="sm" variant="ghost" onClick={() => {
+                            const map: Record<string, any> = { access: "/admin/access-control/requests", waivers: "/finance/budget", refunds: "/finance/ledger", visibility: "/admin/access-control/requests", scholarship: "/finance/scholarships" };
+                            navigate({ to: map[tab] ?? "/admin/access-control/requests" });
+                          }} className="h-7 text-xs">Details</Button>
                         </div>
                       </li>
                     );
@@ -206,7 +209,7 @@ function HoiDashboard() {
           <RiskFlag tone="red" icon={AlertTriangle} title="ME Dept attendance fell to 68% (below threshold)"
             action={<Button size="sm" variant="outline" className="h-6 text-[11px]" onClick={(e) => { e.stopPropagation(); setAlertDept("ME"); }}>Send alert to HOD Rohan</Button>}
             onClick={() => navigate({ to: "/academic/attendance" })} />
-          <RiskFlag tone="amber" icon={Wallet} title="₹47L total dues from 23 students (top defaulters)"
+          <RiskFlag tone="amber" icon={Wallet} title="₹8,17,489 dues from 14 students (4 critical)"
             onClick={() => navigate({ to: "/finance/defaulters" })} />
           <RiskFlag tone="amber" icon={ShieldCheck} title="NAAC C3 (Research) at 42% — AQAR due in 38 days"
             onClick={() => navigate({ to: "/compliance/naac" })} />

@@ -483,15 +483,16 @@ export function RiskFlag({ icon: Icon, title, action, tone = "amber", onClick }:
     : "border-lnx-amber-500/30 bg-lnx-amber-500/5";
   const iconCls = tone === "red" ? "text-lnx-red-500" : "text-lnx-amber-500";
   return (
-    <button
-      onClick={onClick}
-      className={cn("flex w-full items-start gap-2 rounded-lg border p-3 text-left transition hover:shadow-sm", cls)}
-    >
-      <Icon className={cn("h-4 w-4 flex-shrink-0 mt-0.5", iconCls)} />
-      <div className="min-w-0 flex-1">
-        <p className="text-xs font-medium text-lnx-navy-800">{title}</p>
-        {action && <div className="mt-1">{action}</div>}
-      </div>
-    </button>
+    <div className={cn("flex w-full items-start gap-2 rounded-lg border p-3 text-left transition hover:shadow-sm", cls)}>
+      <button
+        type="button"
+        onClick={onClick}
+        className="flex flex-1 items-start gap-2 text-left"
+      >
+        <Icon className={cn("h-4 w-4 flex-shrink-0 mt-0.5", iconCls)} />
+        <p className="text-xs font-medium text-lnx-navy-800 min-w-0 flex-1">{title}</p>
+      </button>
+      {action && <div className="flex-shrink-0">{action}</div>}
+    </div>
   );
 }
