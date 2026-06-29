@@ -11,8 +11,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogT
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { usePlacementStore, useUsersStore, useAccessStore, useCommStore } from "@/stores";
 import { useAccess } from "@/lib/access";
+import { usePolicyStore } from "@/lib/policies";
 import { KpiCard } from "@/components/common/KpiCard";
-import { BadgeCheck, Clock, IndianRupee, Plus } from "lucide-react";
+import { BadgeCheck, Clock, IndianRupee, Plus, Target, TrendingUp } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 import { Avatar } from "@/components/common/Avatar";
 import { toast } from "sonner";
 
