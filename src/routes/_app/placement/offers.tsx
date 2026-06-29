@@ -86,7 +86,7 @@ function OffersPage() {
         } />
       {(() => {
         const policies = usePolicyStore.getState().policies;
-        const finalYear = users.filter(u => u.role === "student" && (u.year ?? 0) >= 4);
+        const finalYear = users.filter(u => u.role === "student" && ((u as any).year ?? 4) >= 4);
         const eligible = finalYear.length || 80;
         const placedIds = new Set(offers.filter(o => o.status === "accepted").map(o => o.studentId));
         const placed = placedIds.size;
