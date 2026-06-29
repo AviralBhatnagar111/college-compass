@@ -79,40 +79,76 @@ function DashboardRouter() {
 // ════════════════════════════════════════════════════════════════════════
 // HOI / DIRECTOR — Executive cockpit
 // ════════════════════════════════════════════════════════════════════════
+import {
+  PeriodSelector, type Period, PERIOD_LABEL, periodFactor,
+  ExplainDialog, type ExplainRow,
+  AssignTaskDialog, ExportReportDialog, SegmentedAnnounceDialog,
+  RetentionWidget, type AtRiskStudent,
+  DeadlinesCalendar, type DeadlineItem,
+  AqarDraftDialog,
+} from "@/components/dashboard/HoiWidgets";
+import { useDashApprovalStore } from "@/stores/dashboardApprovals";
+
 function HoiDashboard() {
   const { user } = useAccess();
   const requests = useAccessStore(s => s.requests).filter(r => r.status === "pending");
   const audit = useAccessStore(s => s.audit).slice(0, 8);
+  const addAudit = useAccessStore(s => s.addAudit);
   const users = useUsersStore(s => s.users);
   const criteria = useComplianceStore(s => s.criteria);
-  const drives = usePlacementStore(s => s.drives);
   const ledger = useFinanceStore(s => s.ledger);
   const navigate = useNavigate();
 
+  const decisions = useDashApprovalStore(s => s.decisions);
+  const dismissedFlags = useDashApprovalStore(s => s.dismissedFlags);
+  const decide = useDashApprovalStore(s => s.decide);
+  const dismissFlag = useDashApprovalStore(s => s.dismissFlag);
+
   const students = users.filter(u => u.role === "student");
   const faculty = users.filter(u => ["faculty","lab_faculty","hod"].includes(u.role));
+  const parents = users.filter(u => u.role === "parent");
   const naacReadiness = Math.round(criteria.reduce((a, c) => a + c.readiness, 0) / Math.max(criteria.length, 1));
+  const departments = Array.from(new Set(users.map(u => u.department).filter(Boolean) as string[]));
+  const batches = Array.from(new Set(students.map(s => s.batch).filter(Boolean) as string[]));
 
-  // Approval queue tabs
-  const [tab, setTab] = useState<"access" | "waivers" | "refunds" | "visibility" | "scholarship">("access");
-  const accessReqs = requests.filter(r => r.change.toLowerCase().includes("access"));
-  const waiverReqs: AccessRequest[] = [
-    { id: "wv1", userId: "u_stu_002", requestedBy: "u_registrar", requestedAt: new Date(Date.now()-2*864e5).toISOString(), change: "Fee waiver 30%", reason: "Single-parent income certificate verified", status: "pending" },
-    { id: "wv2", userId: "u_stu_005", requestedBy: "u_registrar", requestedAt: new Date(Date.now()-3*864e5).toISOString(), change: "Fee waiver 50%", reason: "EWS category, family income < 2.5L", status: "pending" },
-    { id: "wv3", userId: "u_stu_008", requestedBy: "u_registrar", requestedAt: new Date(Date.now()-1*864e5).toISOString(), change: "Fee waiver 25%", reason: "Sibling concession", status: "pending" },
-  ];
-  const refundReqs: AccessRequest[] = [
-    { id: "rf1", userId: "u_stu_003", requestedBy: "u_finance", requestedAt: new Date(Date.now()-1*864e5).toISOString(), change: "Refund ₹75,000", reason: "Transfer to another institute", status: "pending" },
-    { id: "rf2", userId: "u_stu_006", requestedBy: "u_finance", requestedAt: new Date(Date.now()-2*864e5).toISOString(), change: "Refund ₹62,500", reason: "Excess fee paid", status: "pending" },
-  ];
-  const visReqs: AccessRequest[] = [
-    { id: "vs1", userId: "u_hod_cse", requestedBy: "u_hod_cse", requestedAt: new Date(Date.now()-4*864e5).toISOString(), change: "Cross-dept visibility: ECE attendance", reason: "Joint research project planning", status: "pending" },
-    { id: "vs2", userId: "u_fac_anjali", requestedBy: "u_fac_anjali", requestedAt: new Date(Date.now()-5*864e5).toISOString(), change: "View ME placement data", reason: "Inter-disciplinary case study", status: "pending" },
-  ];
-  const scholarReqs: AccessRequest[] = [
-    { id: "sc1", userId: "u_stu_007", requestedBy: "u_registrar", requestedAt: new Date(Date.now()-1*864e5).toISOString(), change: "Escalation: NSP scholarship denied", reason: "Re-evaluation requested by parent", status: "pending" },
-  ];
-  const tabData = { access: accessReqs, waivers: waiverReqs, refunds: refundReqs, visibility: visReqs, scholarship: scholarReqs }[tab];
+  // ── Period selector (cascades through KPI math) ────────────────────────
+  const [period, setPeriod] = useState<Period>("month");
+  const pf = periodFactor(period);
+
+  // Approval queues — seeded once, decisions persisted in store
+  const baseQueues = useMemo(() => ({
+    access: requests.filter(r => r.change.toLowerCase().includes("access")),
+    waivers: [
+      { id: "wv1", userId: "u_stu_002", requestedBy: "u_registrar", requestedAt: new Date(Date.now()-2*864e5).toISOString(), change: "Fee waiver 30%", reason: "Single-parent income certificate verified", status: "pending" as const },
+      { id: "wv2", userId: "u_stu_005", requestedBy: "u_registrar", requestedAt: new Date(Date.now()-3*864e5).toISOString(), change: "Fee waiver 50%", reason: "EWS category, family income < 2.5L", status: "pending" as const },
+      { id: "wv3", userId: "u_stu_008", requestedBy: "u_registrar", requestedAt: new Date(Date.now()-1*864e5).toISOString(), change: "Fee waiver 25%", reason: "Sibling concession", status: "pending" as const },
+    ],
+    refunds: [
+      { id: "rf1", userId: "u_stu_003", requestedBy: "u_finance", requestedAt: new Date(Date.now()-1*864e5).toISOString(), change: "Refund ₹75,000", reason: "Transfer to another institute", status: "pending" as const },
+      { id: "rf2", userId: "u_stu_006", requestedBy: "u_finance", requestedAt: new Date(Date.now()-2*864e5).toISOString(), change: "Refund ₹62,500", reason: "Excess fee paid", status: "pending" as const },
+    ],
+    visibility: [
+      { id: "vs1", userId: "u_hod_cse", requestedBy: "u_hod_cse", requestedAt: new Date(Date.now()-4*864e5).toISOString(), change: "Cross-dept visibility: ECE attendance", reason: "Joint research project planning", status: "pending" as const },
+      { id: "vs2", userId: "u_fac_anjali", requestedBy: "u_fac_anjali", requestedAt: new Date(Date.now()-5*864e5).toISOString(), change: "View ME placement data", reason: "Inter-disciplinary case study", status: "pending" as const },
+    ],
+    scholarship: [
+      { id: "sc1", userId: "u_stu_007", requestedBy: "u_registrar", requestedAt: new Date(Date.now()-1*864e5).toISOString(), change: "Escalation: NSP scholarship denied", reason: "Re-evaluation requested by parent", status: "pending" as const },
+    ],
+  }), [requests]);
+
+  // Apply decisions
+  const filterDecided = <T extends { id: string }>(arr: T[]) => arr.filter(r => !decisions[r.id]);
+  const queues = {
+    access: filterDecided(baseQueues.access),
+    waivers: filterDecided(baseQueues.waivers),
+    refunds: filterDecided(baseQueues.refunds),
+    visibility: filterDecided(baseQueues.visibility),
+    scholarship: filterDecided(baseQueues.scholarship),
+  };
+  const totalPending = queues.access.length + queues.waivers.length + queues.refunds.length + queues.visibility.length + queues.scholarship.length;
+
+  const [tab, setTab] = useState<keyof typeof queues>("access");
+  const tabData = queues[tab];
 
   // Dialog state
   const [confirmReq, setConfirmReq] = useState<AccessRequest | null>(null);
@@ -121,40 +157,220 @@ function HoiDashboard() {
   const [announceOpen, setAnnounceOpen] = useState(false);
   const [aqarOpen, setAqarOpen] = useState(false);
   const [alertDept, setAlertDept] = useState<string | null>(null);
+  const [explainKey, setExplainKey] = useState<null | "students" | "faculty" | "attendance" | "collection" | "placement" | "naac">(null);
+  const [assignFlag, setAssignFlag] = useState<null | { defaultTitle: string; source: string }>(null);
 
+  // ── KPI numerics (period-cascaded where it makes sense) ────────────────
+  const monthCollection = Math.round(2180000 * pf);
+  const ytdCollection = 10500000;
+  const todaysAttendance = period === "today" ? 91 : period === "week" ? 90 : period === "month" ? 89 : 88;
+  const placementPct = 76;
+
+  const sparks = {
+    students: [128, 130, 133, 136, 138, students.length],
+    faculty: [24, 25, 25, 26, 26, faculty.length],
+    attendance: [86, 88, 90, 89, 91, todaysAttendance],
+    collection: [16, 18, 19, 20, 21, Math.round(monthCollection / 100000)],
+    placement: [62, 66, 70, 73, 74, placementPct],
+    naac: [62, 65, 70, 73, 76, naacReadiness],
+  };
+
+  // Risk flags model — supports Dismiss + Assign
+  type Flag = { id: string; tone: "red" | "amber"; icon: any; title: string; href: string; primary?: { label: string; onClick: () => void } };
+  const allFlags: Flag[] = [
+    { id: "rf_me_att", tone: "red", icon: AlertTriangle, title: "ME Dept attendance fell to 68% (below threshold)", href: "/academic/attendance",
+      primary: { label: "Send alert to HOD Rohan", onClick: () => setAlertDept("ME") } },
+    { id: "rf_dues", tone: "amber", icon: Wallet, title: "₹8,17,489 dues from 14 students (4 critical)", href: "/finance/defaulters",
+      primary: { label: "Open Defaulters", onClick: () => navigate({ to: "/finance/defaulters" }) } },
+    { id: "rf_naac_c3", tone: "amber", icon: ShieldCheck, title: "NAAC C3 (Research) at 42% — AQAR due in 38 days", href: "/compliance/naac",
+      primary: { label: "Open Criterion 3", onClick: () => navigate({ to: "/compliance/naac" }) } },
+    { id: "rf_workload", tone: "amber", icon: Users, title: "Faculty Dr. Mishra workload 28% over policy", href: "/people/faculty",
+      primary: { label: "Open Workload", onClick: () => navigate({ to: "/people/faculty" }) } },
+    { id: "rf_aicte", tone: "red", icon: Stamp, title: "AICTE EoA submission due in 62 days", href: "/compliance/aicte",
+      primary: { label: "Open AICTE", onClick: () => navigate({ to: "/compliance/aicte" }) } },
+  ];
+  const flags = allFlags.filter(f => !dismissedFlags[f.id]);
+
+  // At-risk students (driven by seed)
+  const atRisk: AtRiskStudent[] = students
+    .filter(s => (s.attendancePct ?? 100) < 75 || (s.backlogs ?? 0) >= 2)
+    .slice(0, 8)
+    .map(s => ({
+      id: s.id,
+      name: `${s.firstName} ${s.lastName}`,
+      reason: (s.attendancePct ?? 100) < 65 ? `Attendance ${s.attendancePct}%` :
+              (s.backlogs ?? 0) >= 3 ? `${s.backlogs} backlogs` :
+              (s.attendancePct ?? 100) < 75 ? `Attendance ${s.attendancePct}%` : `${s.backlogs} backlogs`,
+      severity: (s.attendancePct ?? 100) < 65 || (s.backlogs ?? 0) >= 3 ? "critical" : "watch",
+      href: `/people/students/${s.id}`,
+    }));
+  const retentionPct = Math.round((1 - atRisk.length / Math.max(students.length, 1)) * 100);
+
+  // Compliance & deadline calendar
+  const deadlines: DeadlineItem[] = [
+    { id: "d_aqar", label: "AQAR submission (NAAC)", date: addDaysSafe(38), module: "NAAC", href: "/compliance/naac" },
+    { id: "d_eoa", label: "AICTE EoA filing", date: addDaysSafe(62), module: "AICTE", href: "/compliance/aicte" },
+    { id: "d_nba_sar", label: "NBA SAR (Tier-II) draft", date: addDaysSafe(94), module: "NBA", href: "/compliance/nba" },
+    { id: "d_exam_lock", label: "Sem-end results lock", date: addDaysSafe(14), module: "Exams", href: "/academic/results" },
+    { id: "d_nirf", label: "NIRF data submission window", date: addDaysSafe(120), module: "NIRF", href: "/compliance/nirf" },
+  ];
+
+  // ── Approve / Reject handlers (persist + audit + toast + notify) ───────
   const handleApprove = (req: AccessRequest, comment: string) => {
-    resolveAccessRequestCascade(req.id, "approved", comment, user!.id);
+    // If this is a real access request, run the cascade; otherwise just decide locally
+    const isAccess = baseQueues.access.some(r => r.id === req.id);
+    if (isAccess) {
+      resolveAccessRequestCascade(req.id, "approved", comment, user!.id);
+    } else {
+      decide({ reqId: req.id, decision: "approved", note: comment, byUserId: user!.id, at: new Date().toISOString() });
+      addAudit({
+        id: `aud_${Date.now().toString(36)}`, at: new Date().toISOString(),
+        actorId: user!.id, module: "Approvals", action: `approve.${tab}`,
+        targetId: req.id, reason: `${req.change} · ${comment || "no comment"}`,
+      });
+    }
     toast.success("Approved", { description: req.change });
   };
   const handleReject = (req: AccessRequest, reason: string) => {
-    resolveAccessRequestCascade(req.id, "rejected", reason, user!.id);
+    const isAccess = baseQueues.access.some(r => r.id === req.id);
+    if (isAccess) {
+      resolveAccessRequestCascade(req.id, "rejected", reason, user!.id);
+    } else {
+      decide({ reqId: req.id, decision: "rejected", note: reason, byUserId: user!.id, at: new Date().toISOString() });
+      addAudit({
+        id: `aud_${Date.now().toString(36)}`, at: new Date().toISOString(),
+        actorId: user!.id, module: "Approvals", action: `reject.${tab}`,
+        targetId: req.id, reason: `${req.change} · ${reason}`,
+      });
+    }
     toast("Rejected", { description: req.change });
   };
+
+  // Explain data builders
+  const explainRows: Record<string, { title: string; formula: string; rows: ExplainRow[]; source: string }> = {
+    students: {
+      title: "Active Students", formula: "count(users where role=student AND status=active)",
+      rows: [
+        { label: "Total students", value: String(students.length) },
+        { label: "Active", value: String(students.filter(s => s.status === "active").length), tone: "good" },
+        { label: "Pending admission", value: String(students.filter(s => s.status === "pending").length), tone: "warn" },
+        { label: "Inactive", value: String(students.filter(s => s.status === "inactive").length) },
+      ],
+      source: "People → Students (SIS)",
+    },
+    faculty: {
+      title: "Faculty Strength", formula: "filled / sanctioned (AICTE)",
+      rows: [
+        { label: "Filled positions", value: `${faculty.length}` },
+        { label: "Sanctioned (AICTE)", value: "30" },
+        { label: "Vacant", value: String(30 - faculty.length), tone: "warn" },
+        { label: "Projected FSR", value: "1:18", tone: "good" },
+      ],
+      source: "People → Faculty + AICTE sanctioned intake",
+    },
+    attendance: {
+      title: "Today's Attendance", formula: "Σ present / Σ enrolled across all scheduled periods",
+      rows: [
+        { label: "Periods conducted", value: "42" },
+        { label: "Present", value: `${Math.round(students.length * 0.91)} of ${students.length}` },
+        { label: "Below 75% (cumulative)", value: `${atRisk.filter(a => a.reason.startsWith("Attendance")).length}`, tone: "warn" },
+        { label: "Policy threshold", value: "75%" },
+      ],
+      source: "Academic → Attendance",
+    },
+    collection: {
+      title: `Collection (${PERIOD_LABEL[period]})`, formula: "Σ paid receipts in selected period",
+      rows: [
+        { label: "Period", value: PERIOD_LABEL[period] },
+        { label: "Collected", value: lakhs(monthCollection), tone: "good" },
+        { label: "YTD", value: lakhs(ytdCollection) },
+        { label: "Outstanding", value: "₹8,17,489", tone: "warn" },
+      ],
+      source: "Finance → Ledger",
+    },
+    placement: {
+      title: "Placement YTD", formula: "placed / (eligible final-year)",
+      rows: [
+        { label: "Eligible (final year)", value: "118" },
+        { label: "Placed", value: `${Math.round(118 * 0.76)}`, tone: "good" },
+        { label: "Target (policy)", value: "76%" },
+        { label: "Avg package", value: "₹6.4 LPA" },
+      ],
+      source: "Placement → Offers · policy threshold",
+    },
+    naac: {
+      title: "NAAC Readiness", formula: "avg(readiness across 7 criteria)",
+      rows: criteria.map(c => ({ label: `C${c.number} ${c.name ?? ""}`, value: `${c.readiness}%`, tone: c.readiness >= 80 ? "good" : c.readiness >= 60 ? "warn" : "bad" })),
+      source: "Compliance → NAAC",
+    },
+  };
+
+  const candidates = users.filter(u => ["hod","registrar","faculty","tpo_head","finance_head"].includes(u.role));
 
   return (
     <>
       <DashboardHero user={user!} kpis={
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
-          <Link to="/people/students"><KpiCard label="Active Students" value={students.length} icon={GraduationCap} delta={{ value: "+12", up: true }} /></Link>
-          <Link to="/people/faculty"><KpiCard label="Faculty Strength" value={`${faculty.length}/30`} icon={Users} delta={{ value: `${30 - faculty.length} vacant`, up: false }} /></Link>
-          <Link to="/academic/attendance"><KpiCard label="Today's Attendance" value="91%" icon={Activity} tone="teal" /></Link>
-          <Link to="/finance/ledger"><KpiCard label="Month Collection" value={lakhs(2180000)} icon={Wallet} delta={{ value: "YTD ₹1.05 Cr", up: true }} /></Link>
-          <Link to="/placement/offers"><KpiCard label="Placement YTD" value="76%" icon={Briefcase} tone="amber" /></Link>
-          <Link to="/compliance/naac"><KpiCard label="NAAC Readiness" value={`${naacReadiness}%`} icon={ShieldCheck} tone={naacReadiness >= 80 ? "teal" : "amber"} /></Link>
-        </div>
+        <>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <PeriodSelector value={period} onChange={setPeriod} />
+            <span className="text-xs text-muted-foreground">KPIs cascade with selected period</span>
+          </div>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
+            <Link to="/people/students">
+              <KpiCard label="Active Students" value={students.length} icon={GraduationCap}
+                delta={{ value: "+12", up: true }} spark={sparks.students}
+                target={{ value: 150, label: "150 capacity", current: students.length }}
+                status={students.length >= 140 ? "on-track" : "watch"}
+                onExplain={() => setExplainKey("students")} />
+            </Link>
+            <Link to="/people/faculty">
+              <KpiCard label="Faculty Strength" value={`${faculty.length}/30`} icon={Users}
+                delta={{ value: `${30 - faculty.length} vacant`, up: false }} spark={sparks.faculty}
+                target={{ value: 30, label: "30 sanctioned", current: faculty.length }}
+                status={faculty.length >= 28 ? "on-track" : faculty.length >= 25 ? "watch" : "breach"}
+                onExplain={() => setExplainKey("faculty")} />
+            </Link>
+            <Link to="/academic/attendance">
+              <KpiCard label="Today's Attendance" value={`${todaysAttendance}%`} icon={Activity} tone="teal"
+                spark={sparks.attendance} target={{ value: 90, label: "≥ 90%", current: todaysAttendance }}
+                status={todaysAttendance >= 90 ? "on-track" : todaysAttendance >= 80 ? "watch" : "breach"}
+                onExplain={() => setExplainKey("attendance")} />
+            </Link>
+            <Link to="/finance/ledger">
+              <KpiCard label={`${PERIOD_LABEL[period]} Collection`} value={lakhs(monthCollection)} icon={Wallet}
+                delta={{ value: `YTD ${lakhs(ytdCollection)}`, up: true }} spark={sparks.collection}
+                target={{ value: 25, label: `${period === "month" ? "₹25L/mo" : "period target"}`, current: Math.round(monthCollection / 100000) }}
+                status={monthCollection >= 2000000 * pf ? "on-track" : "watch"}
+                onExplain={() => setExplainKey("collection")} />
+            </Link>
+            <Link to="/placement/offers">
+              <KpiCard label="Placement YTD" value={`${placementPct}%`} icon={Briefcase} tone="amber"
+                spark={sparks.placement} target={{ value: 76, label: "76% policy", current: placementPct }}
+                status={placementPct >= 76 ? "on-track" : placementPct >= 70 ? "watch" : "breach"}
+                onExplain={() => setExplainKey("placement")} />
+            </Link>
+            <Link to="/compliance/naac">
+              <KpiCard label="NAAC Readiness" value={`${naacReadiness}%`} icon={ShieldCheck}
+                tone={naacReadiness >= 80 ? "teal" : "amber"} spark={sparks.naac}
+                target={{ value: 80, label: "≥ 80% to file", current: naacReadiness }}
+                status={naacReadiness >= 80 ? "on-track" : naacReadiness >= 60 ? "watch" : "breach"}
+                onExplain={() => setExplainKey("naac")} />
+            </Link>
+          </div>
+        </>
       } />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-4">
-          <Section title="Pending Approvals" action={<Badge variant="outline" className="border-lnx-red-500/30 bg-lnx-red-500/5 text-lnx-red-500">{accessReqs.length + waiverReqs.length + refundReqs.length + visReqs.length + scholarReqs.length} pending</Badge>}>
+          <Section title="Pending Approvals" action={<Badge variant="outline" className="border-lnx-red-500/30 bg-lnx-red-500/5 text-lnx-red-500">{totalPending} pending</Badge>}>
             <Card className="overflow-hidden">
               <div className="flex flex-wrap gap-1 border-b bg-muted/30 px-3 py-2">
                 {[
-                  { id: "access", label: "Access Requests", n: accessReqs.length },
-                  { id: "waivers", label: "Fee Waivers", n: waiverReqs.length },
-                  { id: "refunds", label: "Refunds >₹50K", n: refundReqs.length },
-                  { id: "visibility", label: "Cross-Dept", n: visReqs.length },
-                  { id: "scholarship", label: "Scholarship Esc.", n: scholarReqs.length },
+                  { id: "access", label: "Access Requests", n: queues.access.length },
+                  { id: "waivers", label: "Fee Waivers", n: queues.waivers.length },
+                  { id: "refunds", label: "Refunds >₹50K", n: queues.refunds.length },
+                  { id: "visibility", label: "Cross-Dept", n: queues.visibility.length },
+                  { id: "scholarship", label: "Scholarship Esc.", n: queues.scholarship.length },
                 ].map(t => (
                   <button key={t.id} onClick={() => setTab(t.id as any)}
                     className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${tab === t.id ? "bg-lnx-teal-500 text-white" : "text-muted-foreground hover:bg-accent"}`}>
@@ -206,17 +422,34 @@ function HoiDashboard() {
         </div>
 
         <Section title="Risk Flags" className="space-y-2">
-          <RiskFlag tone="red" icon={AlertTriangle} title="ME Dept attendance fell to 68% (below threshold)"
-            action={<Button size="sm" variant="outline" className="h-6 text-[11px]" onClick={(e) => { e.stopPropagation(); setAlertDept("ME"); }}>Send alert to HOD Rohan</Button>}
-            onClick={() => navigate({ to: "/academic/attendance" })} />
-          <RiskFlag tone="amber" icon={Wallet} title="₹8,17,489 dues from 14 students (4 critical)"
-            onClick={() => navigate({ to: "/finance/defaulters" })} />
-          <RiskFlag tone="amber" icon={ShieldCheck} title="NAAC C3 (Research) at 42% — AQAR due in 38 days"
-            onClick={() => navigate({ to: "/compliance/naac" })} />
-          <RiskFlag tone="amber" icon={Users} title="Faculty Dr. Mishra workload 28% over policy"
-            onClick={() => navigate({ to: "/people/faculty" })} />
-          <RiskFlag tone="red" icon={Stamp} title="AICTE EoA submission due in 62 days"
-            onClick={() => navigate({ to: "/compliance/aicte" })} />
+          {flags.length === 0 ? (
+            <div className="rounded-lg border bg-card p-6 text-center text-xs text-muted-foreground">All flags dismissed</div>
+          ) : flags.map(f => (
+            <RiskFlag key={f.id} tone={f.tone} icon={f.icon} title={f.title}
+              onClick={() => navigate({ to: f.href })}
+              action={
+                <div className="flex flex-col items-end gap-1">
+                  {f.primary && (
+                    <Button size="sm" variant="outline" className="h-6 text-[11px]" onClick={(e) => { e.stopPropagation(); f.primary!.onClick(); }}>
+                      {f.primary.label}
+                    </Button>
+                  )}
+                  <div className="flex gap-1">
+                    <Button size="sm" variant="ghost" className="h-5 px-1.5 text-[10px]" onClick={(e) => { e.stopPropagation(); setAssignFlag({ defaultTitle: f.title, source: `risk-flag:${f.id}` }); }}>
+                      Assign
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-5 px-1.5 text-[10px]" onClick={(e) => {
+                      e.stopPropagation();
+                      dismissFlag(f.id);
+                      addAudit({ id: `aud_${Date.now().toString(36)}`, at: new Date().toISOString(), actorId: user!.id, module: "Dashboard", action: "flag.dismiss", targetId: f.id, reason: f.title });
+                      toast("Flag dismissed", { description: f.title });
+                    }}>
+                      Dismiss
+                    </Button>
+                  </div>
+                </div>
+              } />
+          ))}
         </Section>
       </div>
 
@@ -227,26 +460,36 @@ function HoiDashboard() {
             <Badge variant="outline" className="text-xs">27.6%</Badge>
           </div>
           <ul className="space-y-1.5">
-            {[["Inquired",340,100],["Counselled",218,64],["Applied",187,55],["Documents",142,42],["Approved",118,35],["Enrolled",94,28]].map(([l,v,w]) => (
-              <li key={l as string} className="space-y-0.5">
-                <div className="flex justify-between text-[11px]"><span>{l as string}</span><span className="font-medium">{v as number}</span></div>
-                <div className="h-1.5 rounded-full bg-muted overflow-hidden"><div className="h-full rounded-full bg-lnx-teal-500" style={{ width: `${w as number}%` }} /></div>
+            {[
+              ["Inquired",340,100,"inquired"],["Counselled",218,64,"counselled"],
+              ["Applied",187,55,"applied"],["Documents",142,42,"documents"],
+              ["Approved",118,35,"approved"],["Enrolled",94,28,"enrolled"],
+            ].map(([l,v,w,stage]) => (
+              <li key={l as string}>
+                <button
+                  onClick={() => { toast(`${l} cohort`, { description: `${v} prospects · open list` }); navigate({ to: "/people/students", search: { stage } as any }); }}
+                  className="w-full space-y-0.5 rounded px-1 py-0.5 text-left hover:bg-accent"
+                >
+                  <div className="flex justify-between text-[11px]"><span>{l as string}</span><span className="font-medium">{v as number}</span></div>
+                  <div className="h-1.5 rounded-full bg-muted overflow-hidden"><div className="h-full rounded-full bg-lnx-teal-500" style={{ width: `${w as number}%` }} /></div>
+                </button>
               </li>
             ))}
           </ul>
+          <p className="mt-2 text-[10px] text-muted-foreground">Click a stage to see the cohort and drop-off reasons.</p>
         </Card>
 
         <Card className="p-4">
           <div className="mb-3 flex items-center justify-between">
             <h3 className="text-sm font-semibold">Department Performance</h3>
-            <Button variant="ghost" size="sm" className="h-6 text-xs">View all</Button>
+            <Link to="/people/faculty" className="text-xs text-lnx-teal-500 hover:underline">View all</Link>
           </div>
           <table className="w-full text-xs">
             <thead className="text-[10px] uppercase text-muted-foreground"><tr><th className="text-left pb-1">Dept</th><th className="text-right pb-1">Att%</th><th className="text-right pb-1">Plc%</th><th className="text-right pb-1">Health</th></tr></thead>
             <tbody>
               {[["CSE",94,82,"green"],["ECE",90,76,"green"],["ME",68,58,"red"],["CIVIL",87,65,"amber"],["BIOTECH",91,48,"amber"]].map(([d,a,p,h]) => (
-                <tr key={d as string} className="border-t">
-                  <td className="py-1.5 font-medium">{d as string}</td>
+                <tr key={d as string} className="cursor-pointer border-t hover:bg-accent" onClick={() => navigate({ to: "/people/faculty" })}>
+                  <td className="py-1.5 font-medium underline-offset-2 hover:underline">{d as string}</td>
                   <td className="text-right">{a as number}%</td>
                   <td className="text-right">{p as number}%</td>
                   <td className="text-right"><span className={`inline-block h-2 w-2 rounded-full ${h === "green" ? "bg-lnx-green-500" : h === "amber" ? "bg-lnx-amber-500" : "bg-lnx-red-500"}`} /></td>
@@ -272,18 +515,34 @@ function HoiDashboard() {
         </Card>
       </div>
 
+      <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <RetentionWidget
+          retentionPct={retentionPct}
+          atRisk={atRisk}
+          onOpen={(s) => navigate({ to: "/people/students/$id", params: { id: s.id } as any })}
+        />
+        <DeadlinesCalendar items={deadlines} />
+      </div>
+
       <Section title="Recent Activity" className="mt-6">
         <Card className="overflow-hidden">
           <ul className="divide-y">
             {audit.slice(0,8).map(a => {
               const actor = users.find(u => u.id === a.actorId);
+              const target = a.module === "Tasks" ? "/admin/audit-log"
+                : a.module === "Approvals" ? "/admin/access-control/requests"
+                : a.module === "NAAC" ? "/compliance/naac"
+                : a.module === "Finance" ? "/finance/ledger"
+                : "/admin/audit-log";
               return (
-                <li key={a.id} className="flex items-center justify-between px-4 py-2.5 text-xs">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Badge variant="outline" className="text-[10px]">{a.module}</Badge>
-                    <span className="truncate"><strong>{actor?.firstName ?? "System"}</strong> · {a.action}</span>
-                  </div>
-                  <span className="flex-shrink-0 text-[10px] text-muted-foreground">{formatDistanceToNow(new Date(a.at), { addSuffix: true })}</span>
+                <li key={a.id}>
+                  <Link to={target} className="flex items-center justify-between px-4 py-2.5 text-xs hover:bg-accent">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Badge variant="outline" className="text-[10px]">{a.module}</Badge>
+                      <span className="truncate"><strong>{actor?.firstName ?? "System"}</strong> · {a.action}</span>
+                    </div>
+                    <span className="flex-shrink-0 text-[10px] text-muted-foreground">{formatDistanceToNow(new Date(a.at), { addSuffix: true })}</span>
+                  </Link>
                 </li>
               );
             })}
@@ -309,14 +568,6 @@ function HoiDashboard() {
         confirmLabel="Reject" tone="danger"
         onSubmit={(r) => rejectReq && handleReject(rejectReq, r)}
       />
-      <ProgressDialog open={exportOpen} onOpenChange={setExportOpen}
-        title="Generating Institution Report" description="Compiling PDF across all modules…"
-        durationMs={2800} successText="Report ready — downloading"
-        onComplete={() => toast.success("Institution report downloaded", { description: "institution-report-jun-2026.pdf" })} />
-      <ProgressDialog open={aqarOpen} onOpenChange={setAqarOpen}
-        title="Generating AQAR Draft" description="Pulling data across 7 criteria…"
-        durationMs={3200} successText="AQAR draft generated"
-        onComplete={() => toast.success("AQAR draft ready", { description: "Open Compliance > NAAC to review" })} />
       <MultiChannelPreviewDialog
         open={!!alertDept} onOpenChange={(v) => !v && setAlertDept(null)}
         title="Send alert to HOD"
@@ -326,18 +577,49 @@ function HoiDashboard() {
         defaultChannels={["email", "whatsapp"]}
         onSend={(ch) => { sendDeptAlertCascade("ME", "Attendance below threshold — action plan required", user!.id); toast.success("Alert sent", { description: `Via ${ch.join(", ")}` }); }}
       />
-      <MultiChannelPreviewDialog
+      <ExplainDialog
+        open={!!explainKey} onOpenChange={(v) => !v && setExplainKey(null)}
+        title={explainKey ? explainRows[explainKey].title : ""}
+        formula={explainKey ? explainRows[explainKey].formula : ""}
+        rows={explainKey ? explainRows[explainKey].rows : []}
+        source={explainKey ? explainRows[explainKey].source : ""}
+      />
+      <AssignTaskDialog
+        open={!!assignFlag} onOpenChange={(v) => !v && setAssignFlag(null)}
+        defaultTitle={assignFlag?.defaultTitle ?? ""}
+        source={assignFlag?.source ?? ""}
+        candidates={candidates} byUserId={user!.id}
+      />
+      <ExportReportDialog
+        open={exportOpen} onOpenChange={setExportOpen} period={period}
+        onConfirm={(cfg) => {
+          addAudit({ id: `aud_${Date.now().toString(36)}`, at: new Date().toISOString(), actorId: user!.id, module: "Reports", action: "report.export", reason: `${cfg.scope} · ${cfg.sections.length} sections · ${cfg.period} · ${cfg.format}` });
+          toast.success("Institution report ready", { description: `${cfg.sections.length} sections · ${cfg.format.toUpperCase()} · ${PERIOD_LABEL[cfg.period]}` });
+        }}
+      />
+      <SegmentedAnnounceDialog
         open={announceOpen} onOpenChange={setAnnounceOpen}
-        title="Institution-wide Announcement"
-        subject="Important Notice from the Director's Office"
-        body={`Dear Bharat Institute community,\n\nThis is an important update from the Director's Office.\n\nRegards,\nDr. Rajeshwari Krishnan\nDirector`}
-        recipients={users.slice(0, 80).map(u => ({ id: u.id, name: `${u.firstName} ${u.lastName}` }))}
-        defaultChannels={["email", "sms"]}
-        onSend={(ch) => toast.success(`Announcement queued`, { description: `${users.length} recipients · ${ch.join(", ")}` })}
+        users={users} byUserId={user!.id}
+        departments={departments} batches={batches}
+        onSend={(audience, channels, subject, _body, count) => {
+          addAudit({ id: `aud_${Date.now().toString(36)}`, at: new Date().toISOString(), actorId: user!.id, module: "Comms", action: "announce.send", reason: `${subject} · ${count} recipients · ${channels.join(",")}` });
+          toast.success("Announcement queued", { description: `${count} recipients · ${channels.join(", ")}` });
+        }}
+      />
+      <AqarDraftDialog
+        open={aqarOpen} onOpenChange={setAqarOpen}
+        criteria={criteria.map(c => ({ id: c.id, number: Number(c.number) || 0, name: c.name, readiness: c.readiness }))}
+        onCommit={() => {
+          addAudit({ id: `aud_${Date.now().toString(36)}`, at: new Date().toISOString(), actorId: user!.id, module: "NAAC", action: "aqar.draft.commit", reason: "AQAR draft committed, IQAC notified" });
+          toast.success("AQAR draft committed", { description: "IQAC notified for review" });
+        }}
       />
     </>
   );
 }
+
+// helper used above
+function addDaysSafe(d: number) { const x = new Date(); x.setDate(x.getDate() + d); return x; }
 
 // ════════════════════════════════════════════════════════════════════════
 // REGISTRAR — Workflow inbox
