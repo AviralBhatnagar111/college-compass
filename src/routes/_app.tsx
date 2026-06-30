@@ -14,6 +14,7 @@ import {
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { ROLE_LABEL } from "@/lib/types";
 import { DEMO_USER_IDS, INSTITUTION } from "@/data/seed";
+import { RouteErrorBoundary } from "@/components/common/RouteErrorBoundary";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, BookOpen, GraduationCap, Users, Wallet, ShieldCheck,
