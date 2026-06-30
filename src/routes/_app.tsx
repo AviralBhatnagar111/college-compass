@@ -14,6 +14,7 @@ import {
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { ROLE_LABEL } from "@/lib/types";
 import { DEMO_USER_IDS, INSTITUTION } from "@/data/seed";
+import { RouteErrorBoundary } from "@/components/common/RouteErrorBoundary";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, BookOpen, GraduationCap, Users, Wallet, ShieldCheck,
@@ -42,6 +43,7 @@ export const Route = createFileRoute("/_app")({
 const NAV: { group: string; items: { to: string; label: string; icon: any; navKey?: string }[] }[] = [
   { group: "ACADEMIC", items: [
     { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { to: "/admissions", label: "Admissions", icon: UserCircle2, navKey: "nav.academic" },
     { to: "/academic/programs", label: "Programs", icon: BookOpen, navKey: "nav.academic" },
     { to: "/academic/subjects", label: "Subjects", icon: BookMarked, navKey: "nav.academic" },
     { to: "/academic/classes", label: "Classes", icon: Users, navKey: "nav.academic" },
@@ -50,8 +52,10 @@ const NAV: { group: string; items: { to: string; label: string; icon: any; navKe
     { to: "/academic/attendance", label: "Attendance", icon: ClipboardList, navKey: "nav.academic" },
     { to: "/academic/study-material", label: "Study Material", icon: MonitorPlay, navKey: "nav.academic" },
     { to: "/academic/course-files", label: "Course Files", icon: FileText, navKey: "nav.academic" },
+    { to: "/academic/library", label: "Library", icon: BookOpen, navKey: "nav.academic" },
     { to: "/academic/examinations", label: "Examinations", icon: FileText, navKey: "nav.academic" },
     { to: "/academic/results", label: "Results", icon: Award, navKey: "nav.academic" },
+    { to: "/academic/certificates", label: "Certificates", icon: FileText, navKey: "nav.academic" },
   ]},
   { group: "PLACEMENT", items: [
     { to: "/placement/companies", label: "Companies", icon: Building2, navKey: "nav.placement" },
@@ -66,6 +70,7 @@ const NAV: { group: string; items: { to: string; label: string; icon: any; navKe
     { to: "/people/faculty", label: "Faculty & Staff", icon: Users, navKey: "nav.people" },
     { to: "/people/faculty-appraisal", label: "Faculty Appraisal", icon: BadgeCheck, navKey: "nav.people" },
     { to: "/people/parents", label: "Parents", icon: UserCircle2, navKey: "nav.people" },
+    { to: "/people/alumni", label: "Alumni", icon: GraduationCap, navKey: "nav.people" },
   ]},
   { group: "FINANCE", items: [
     { to: "/finance/fee-structures", label: "Fee Structures", icon: Wallet, navKey: "nav.finance" },
@@ -83,6 +88,7 @@ const NAV: { group: string; items: { to: string; label: string; icon: any; navKe
   { group: "QUALITY & GOVERNANCE", items: [
     { to: "/quality/iqac", label: "IQAC", icon: ShieldCheck, navKey: "nav.compliance" },
     { to: "/quality/grievances", label: "Grievances & Feedback", icon: MessageSquare, navKey: "nav.compliance" },
+    { to: "/quality/research", label: "Research", icon: FileText, navKey: "nav.compliance" },
   ]},
   { group: "COMMUNICATION", items: [
     { to: "/communication/inbox", label: "Inbox", icon: MessageSquare, navKey: "nav.communication" },
@@ -95,6 +101,9 @@ const NAV: { group: string; items: { to: string; label: string; icon: any; navKe
     { to: "/admin/access-control", label: "Access Control", icon: KeyRound, navKey: "nav.admin" },
     { to: "/admin/org-structure", label: "Org Structure", icon: FolderTree, navKey: "nav.admin" },
     { to: "/admin/committees", label: "Committees", icon: Users, navKey: "nav.admin" },
+    { to: "/admin/hostel", label: "Hostel", icon: Building2, navKey: "nav.admin" },
+    { to: "/admin/transport", label: "Transport", icon: Briefcase, navKey: "nav.admin" },
+    { to: "/admin/procurement", label: "Procurement & Assets", icon: ListChecks, navKey: "nav.admin" },
     { to: "/admin/audit-log", label: "Audit Log", icon: History, navKey: "nav.admin" },
     { to: "/admin/settings", label: "Settings", icon: Settings },
   ]},
@@ -255,7 +264,9 @@ function AppLayout() {
         </header>
 
         <main className="flex-1 overflow-x-hidden p-6">
-          <Outlet />
+          <RouteErrorBoundary key={pathname}>
+            <Outlet />
+          </RouteErrorBoundary>
         </main>
       </div>
     </div>

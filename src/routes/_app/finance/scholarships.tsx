@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useFinanceStore, useUsersStore } from "@/stores";
 import { useAccess } from "@/lib/access";
-import { Award, IndianRupee, Plus, CheckCircle2 } from "lucide-react";
+import { Award, IndianRupee, Plus, CheckCircle2, AlertTriangle } from "lucide-react";
 import { Avatar } from "@/components/common/Avatar";
 import { verifyScholarshipCascade, disburseScholarshipCascade } from "@/lib/cascade";
 import { toast } from "sonner";
@@ -22,11 +22,12 @@ const INR = (n: number) => "₹" + n.toLocaleString("en-IN");
 
 function ScholarshipsPage() {
   const list = useFinanceStore(s => s.scholarships);
-  const students = useUsersStore(s => s.users.filter(u => u.role === "student").slice(0, 8));
+  const usersRaw = useUsersStore(s => s.users);
   const { user } = useAccess();
   const [open, setOpen] = useState<string | null>(null);
   const [verified, setVerified] = useState<Set<string>>(new Set());
 
+  const students = useMemo(() => usersRaw.filter(u => u.role === "student").slice(0, 12), [usersRaw]);
   const scheme = list.find(s => s.id === open);
 
   const doVerify = (sid: string) => {
@@ -37,35 +38,43 @@ function ScholarshipsPage() {
   };
   const disburseAll = () => {
     if (!scheme) return;
-    disburseScholarshipCascade(verified.size || 4, scheme.amount, user?.id ?? "u_finance_head");
-    toast.success("Disbursed", { description: `${verified.size || 4} students · ${INR((verified.size || 4) * scheme.amount)}` });
+    const n = verified.size || 4;
+    disburseScholarshipCascade(n, scheme.amount, user?.id ?? "u_finance_head");
+    toast.success("Disbursed", { description: `${n} students · ${INR(n * scheme.amount)}` });
     setOpen(null); setVerified(new Set());
   };
 
   return (
     <div>
-      <PageHeader title="Scholarships" subtitle="Schemes, applications, approvals and disbursals" action={<Button><Plus className="h-4 w-4 mr-2" />New Scheme</Button>} />
+      <PageHeader title="Scholarships" subtitle="Schemes, applicants, verification and disbursal" action={<Button onClick={() => toast.info("Scheme builder opens here")}><Plus className="h-4 w-4 mr-2" />New Scheme</Button>} />
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {list.map(s => (
-          <Card key={s.id} className="p-5">
-            <div className="flex items-start justify-between">
-              <div>
-                <div className="flex items-center gap-2"><Award className="h-4 w-4 text-lnx-teal-500" /><Badge variant="outline" className="text-[10px]">{s.scheme}</Badge></div>
-                <h3 className="mt-2 font-semibold text-lnx-navy-800">{s.name}</h3>
-                <p className="mt-1 text-lg font-bold tabular text-lnx-teal-500"><IndianRupee className="h-4 w-4 inline" />{s.amount.toLocaleString("en-IN")}</p>
+        {list.map(s => {
+          const escalations = Math.max(0, s.appliedCount - s.approvedCount - 2);
+          return (
+            <Card key={s.id} className="p-5">
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="flex items-center gap-2"><Award className="h-4 w-4 text-lnx-teal-500" /><Badge variant="outline" className="text-[10px]">{s.scheme}</Badge></div>
+                  <h3 className="mt-2 font-semibold text-lnx-navy-800">{s.name}</h3>
+                  <p className="mt-1 text-lg font-bold tabular text-lnx-teal-500"><IndianRupee className="h-4 w-4 inline" />{s.amount.toLocaleString("en-IN")}</p>
+                </div>
+                {escalations > 0 && (
+                  <Badge variant="secondary" className="bg-lnx-amber-500/10 text-lnx-amber-500"><AlertTriangle className="h-3 w-3 mr-1" />{escalations}</Badge>
+                )}
               </div>
-            </div>
-            <div className="mt-4 space-y-3">
-              <Row label="Applied" v={s.appliedCount} max={s.appliedCount} />
-              <Row label="Approved" v={s.approvedCount} max={s.appliedCount} tone="bg-lnx-amber-500" />
-              <Row label="Disbursed" v={s.disbursedCount} max={s.appliedCount} tone="bg-lnx-green-500" />
-            </div>
-            <Button variant="outline" size="sm" className="w-full mt-4" onClick={() => setOpen(s.id)}>Manage Applicants</Button>
-          </Card>
-        ))}
+              <div className="mt-4 space-y-3">
+                <Row label="Applied" v={s.appliedCount} max={s.appliedCount} />
+                <Row label="Approved" v={s.approvedCount} max={s.appliedCount} tone="bg-lnx-amber-500" />
+                <Row label="Disbursed" v={s.disbursedCount} max={s.appliedCount} tone="bg-lnx-green-500" />
+              </div>
+              <Button variant="outline" size="sm" className="w-full mt-4" onClick={() => setOpen(s.id)}>Manage applicants</Button>
+            </Card>
+          );
+        })}
       </div>
 
-      <Dialog open={!!open} onOpenChange={(v) => !v && setOpen(null)}>
+      <Dialog open={!!open} onOpenChange={v => !v && setOpen(null)}>
         <DialogContent className="max-w-2xl">
           {scheme && (
             <>
