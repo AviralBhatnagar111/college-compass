@@ -293,6 +293,7 @@ function AppLayout() {
           </RouteErrorBoundary>
         </main>
       </div>
+      <CommandPalette open={cmd.open} onOpenChange={cmd.setOpen} />
     </div>
   );
 }
