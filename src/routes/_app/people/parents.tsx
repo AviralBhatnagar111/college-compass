@@ -48,7 +48,7 @@ function ParentsPage() {
       } />
       <Card className="p-0">
         <table className="w-full text-sm"><thead className="border-b bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground"><tr><th className="px-4 py-2">Parent</th><th>Child</th><th>Section</th><th>Phone</th><th></th></tr></thead>
-          <tbody className="divide-y">{filtered.slice(0, 100).map(p => {
+          <tbody className="divide-y">{filtered.map(p => {
             const c = users.find(u => u.id === p.childId);
             return (
               <tr key={p.id} className="hover:bg-accent/40 cursor-pointer" onClick={() => setView(p.id)}>
