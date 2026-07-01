@@ -15,6 +15,9 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { ROLE_LABEL } from "@/lib/types";
 import { DEMO_USER_IDS, INSTITUTION } from "@/data/seed";
 import { RouteErrorBoundary } from "@/components/common/RouteErrorBoundary";
+import { CommandPalette, useCommandPalette } from "@/components/common/CommandPalette";
+import { useTaskStore } from "@/stores/tasks";
+import { useAccessStore } from "@/stores";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, BookOpen, GraduationCap, Users, Wallet, ShieldCheck,
@@ -22,7 +25,7 @@ import {
   LogOut, ChevronLeft, ChevronRight, UserCircle2, Calendar, ClipboardList,
   Building2, Briefcase, Bot, BadgeCheck, Lock, FileText, FolderTree,
   History, KeyRound, ListChecks, BookMarked, MonitorPlay, Award,
-  Repeat,
+  Repeat, Inbox, CheckSquare,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_app")({
