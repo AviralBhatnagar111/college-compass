@@ -32,6 +32,7 @@ import { Route as AppPeopleParentsRouteImport } from './routes/_app/people/paren
 import { Route as AppPeopleFacultyAppraisalRouteImport } from './routes/_app/people/faculty-appraisal'
 import { Route as AppPeopleFacultyRouteImport } from './routes/_app/people/faculty'
 import { Route as AppPeopleAlumniRouteImport } from './routes/_app/people/alumni'
+import { Route as AppMyTasksRouteImport } from './routes/_app/my/tasks'
 import { Route as AppMyResultsRouteImport } from './routes/_app/my/results'
 import { Route as AppMyFeesRouteImport } from './routes/_app/my/fees'
 import { Route as AppFinanceScholarshipsRouteImport } from './routes/_app/finance/scholarships'
@@ -193,6 +194,11 @@ const AppPeopleFacultyRoute = AppPeopleFacultyRouteImport.update({
 const AppPeopleAlumniRoute = AppPeopleAlumniRouteImport.update({
   id: '/people/alumni',
   path: '/people/alumni',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMyTasksRoute = AppMyTasksRouteImport.update({
+  id: '/my/tasks',
+  path: '/my/tasks',
   getParentRoute: () => AppRoute,
 } as any)
 const AppMyResultsRoute = AppMyResultsRouteImport.update({
@@ -474,6 +480,7 @@ export interface FileRoutesByFullPath {
   '/finance/scholarships': typeof AppFinanceScholarshipsRoute
   '/my/fees': typeof AppMyFeesRoute
   '/my/results': typeof AppMyResultsRoute
+  '/my/tasks': typeof AppMyTasksRoute
   '/people/alumni': typeof AppPeopleAlumniRoute
   '/people/faculty': typeof AppPeopleFacultyRoute
   '/people/faculty-appraisal': typeof AppPeopleFacultyAppraisalRoute
@@ -543,6 +550,7 @@ export interface FileRoutesByTo {
   '/finance/scholarships': typeof AppFinanceScholarshipsRoute
   '/my/fees': typeof AppMyFeesRoute
   '/my/results': typeof AppMyResultsRoute
+  '/my/tasks': typeof AppMyTasksRoute
   '/people/alumni': typeof AppPeopleAlumniRoute
   '/people/faculty': typeof AppPeopleFacultyRoute
   '/people/faculty-appraisal': typeof AppPeopleFacultyAppraisalRoute
@@ -614,6 +622,7 @@ export interface FileRoutesById {
   '/_app/finance/scholarships': typeof AppFinanceScholarshipsRoute
   '/_app/my/fees': typeof AppMyFeesRoute
   '/_app/my/results': typeof AppMyResultsRoute
+  '/_app/my/tasks': typeof AppMyTasksRoute
   '/_app/people/alumni': typeof AppPeopleAlumniRoute
   '/_app/people/faculty': typeof AppPeopleFacultyRoute
   '/_app/people/faculty-appraisal': typeof AppPeopleFacultyAppraisalRoute
@@ -685,6 +694,7 @@ export interface FileRouteTypes {
     | '/finance/scholarships'
     | '/my/fees'
     | '/my/results'
+    | '/my/tasks'
     | '/people/alumni'
     | '/people/faculty'
     | '/people/faculty-appraisal'
@@ -754,6 +764,7 @@ export interface FileRouteTypes {
     | '/finance/scholarships'
     | '/my/fees'
     | '/my/results'
+    | '/my/tasks'
     | '/people/alumni'
     | '/people/faculty'
     | '/people/faculty-appraisal'
@@ -824,6 +835,7 @@ export interface FileRouteTypes {
     | '/_app/finance/scholarships'
     | '/_app/my/fees'
     | '/_app/my/results'
+    | '/_app/my/tasks'
     | '/_app/people/alumni'
     | '/_app/people/faculty'
     | '/_app/people/faculty-appraisal'
@@ -1020,6 +1032,13 @@ declare module '@tanstack/react-router' {
       path: '/people/alumni'
       fullPath: '/people/alumni'
       preLoaderRoute: typeof AppPeopleAlumniRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/my/tasks': {
+      id: '/_app/my/tasks'
+      path: '/my/tasks'
+      fullPath: '/my/tasks'
+      preLoaderRoute: typeof AppMyTasksRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/my/results': {
@@ -1444,6 +1463,7 @@ interface AppRouteChildren {
   AppFinanceScholarshipsRoute: typeof AppFinanceScholarshipsRoute
   AppMyFeesRoute: typeof AppMyFeesRoute
   AppMyResultsRoute: typeof AppMyResultsRoute
+  AppMyTasksRoute: typeof AppMyTasksRoute
   AppPeopleAlumniRoute: typeof AppPeopleAlumniRoute
   AppPeopleFacultyRoute: typeof AppPeopleFacultyRoute
   AppPeopleFacultyAppraisalRoute: typeof AppPeopleFacultyAppraisalRoute
@@ -1506,6 +1526,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppFinanceScholarshipsRoute: AppFinanceScholarshipsRoute,
   AppMyFeesRoute: AppMyFeesRoute,
   AppMyResultsRoute: AppMyResultsRoute,
+  AppMyTasksRoute: AppMyTasksRoute,
   AppPeopleAlumniRoute: AppPeopleAlumniRoute,
   AppPeopleFacultyRoute: AppPeopleFacultyRoute,
   AppPeopleFacultyAppraisalRoute: AppPeopleFacultyAppraisalRoute,
