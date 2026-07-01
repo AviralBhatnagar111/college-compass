@@ -129,6 +129,8 @@ function AppLayout() {
   const myOpenTasks = useTaskStore(s => s.tasks).filter(t => t.status === "open" && (!user || t.assigneeId === user.id)).length;
   const pendingAccess = useAccessStore(s => s.requests).filter(r => r.status === "pending").length;
   const cmd = useCommandPalette();
+
+  if (!hydrated || !user) {
     return <div className="flex min-h-screen items-center justify-center bg-background text-muted-foreground">Loading…</div>;
   }
 
