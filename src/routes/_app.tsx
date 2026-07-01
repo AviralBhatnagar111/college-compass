@@ -101,6 +101,8 @@ const NAV: { group: string; items: { to: string; label: string; icon: any; navKe
     { to: "/analytics/reports", label: "Reports", icon: BarChart3, navKey: "nav.analytics" },
   ]},
   { group: "ADMINISTRATION", items: [
+    { to: "/admin/approvals", label: "Approval Center", icon: Inbox, navKey: "nav.admin" },
+    { to: "/my/tasks", label: "My Tasks", icon: CheckSquare },
     { to: "/admin/access-control", label: "Access Control", icon: KeyRound, navKey: "nav.admin" },
     { to: "/admin/org-structure", label: "Org Structure", icon: FolderTree, navKey: "nav.admin" },
     { to: "/admin/committees", label: "Committees", icon: Users, navKey: "nav.admin" },
