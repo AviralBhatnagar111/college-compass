@@ -231,7 +231,16 @@ function AppLayout() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Button variant="ghost" size="icon"><Plus className="h-4 w-4" /></Button>
+            <Button asChild variant="ghost" size="sm" className="relative gap-1 px-2">
+              <Link to="/admin/approvals"><Inbox className="h-4 w-4" /><span className="hidden lg:inline">Approvals</span>
+                {pendingAccess > 0 && <Badge className="ml-1 h-4 min-w-4 px-1 text-[9px]">{pendingAccess}</Badge>}
+              </Link>
+            </Button>
+            <Button asChild variant="ghost" size="sm" className="relative gap-1 px-2">
+              <Link to="/my/tasks"><CheckSquare className="h-4 w-4" /><span className="hidden lg:inline">Tasks</span>
+                {myOpenTasks > 0 && <Badge className="ml-1 h-4 min-w-4 px-1 text-[9px]">{myOpenTasks}</Badge>}
+              </Link>
+            </Button>
 
             <Popover>
               <PopoverTrigger asChild>
