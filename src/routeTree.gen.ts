@@ -53,6 +53,7 @@ import { Route as AppAdminOrgStructureRouteImport } from './routes/_app/admin/or
 import { Route as AppAdminHostelRouteImport } from './routes/_app/admin/hostel'
 import { Route as AppAdminCommitteesRouteImport } from './routes/_app/admin/committees'
 import { Route as AppAdminAuditLogRouteImport } from './routes/_app/admin/audit-log'
+import { Route as AppAdminApprovalsRouteImport } from './routes/_app/admin/approvals'
 import { Route as AppAcademicTimetableRouteImport } from './routes/_app/academic/timetable'
 import { Route as AppAcademicSubjectsRouteImport } from './routes/_app/academic/subjects'
 import { Route as AppAcademicStudyMaterialRouteImport } from './routes/_app/academic/study-material'
@@ -300,6 +301,11 @@ const AppAdminAuditLogRoute = AppAdminAuditLogRouteImport.update({
   path: '/admin/audit-log',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAdminApprovalsRoute = AppAdminApprovalsRouteImport.update({
+  id: '/admin/approvals',
+  path: '/admin/approvals',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAcademicTimetableRoute = AppAcademicTimetableRouteImport.update({
   id: '/academic/timetable',
   path: '/academic/timetable',
@@ -446,6 +452,7 @@ export interface FileRoutesByFullPath {
   '/academic/study-material': typeof AppAcademicStudyMaterialRoute
   '/academic/subjects': typeof AppAcademicSubjectsRoute
   '/academic/timetable': typeof AppAcademicTimetableRoute
+  '/admin/approvals': typeof AppAdminApprovalsRoute
   '/admin/audit-log': typeof AppAdminAuditLogRoute
   '/admin/committees': typeof AppAdminCommitteesRoute
   '/admin/hostel': typeof AppAdminHostelRoute
@@ -514,6 +521,7 @@ export interface FileRoutesByTo {
   '/academic/study-material': typeof AppAcademicStudyMaterialRoute
   '/academic/subjects': typeof AppAcademicSubjectsRoute
   '/academic/timetable': typeof AppAcademicTimetableRoute
+  '/admin/approvals': typeof AppAdminApprovalsRoute
   '/admin/audit-log': typeof AppAdminAuditLogRoute
   '/admin/committees': typeof AppAdminCommitteesRoute
   '/admin/hostel': typeof AppAdminHostelRoute
@@ -584,6 +592,7 @@ export interface FileRoutesById {
   '/_app/academic/study-material': typeof AppAcademicStudyMaterialRoute
   '/_app/academic/subjects': typeof AppAcademicSubjectsRoute
   '/_app/academic/timetable': typeof AppAcademicTimetableRoute
+  '/_app/admin/approvals': typeof AppAdminApprovalsRoute
   '/_app/admin/audit-log': typeof AppAdminAuditLogRoute
   '/_app/admin/committees': typeof AppAdminCommitteesRoute
   '/_app/admin/hostel': typeof AppAdminHostelRoute
@@ -654,6 +663,7 @@ export interface FileRouteTypes {
     | '/academic/study-material'
     | '/academic/subjects'
     | '/academic/timetable'
+    | '/admin/approvals'
     | '/admin/audit-log'
     | '/admin/committees'
     | '/admin/hostel'
@@ -722,6 +732,7 @@ export interface FileRouteTypes {
     | '/academic/study-material'
     | '/academic/subjects'
     | '/academic/timetable'
+    | '/admin/approvals'
     | '/admin/audit-log'
     | '/admin/committees'
     | '/admin/hostel'
@@ -791,6 +802,7 @@ export interface FileRouteTypes {
     | '/_app/academic/study-material'
     | '/_app/academic/subjects'
     | '/_app/academic/timetable'
+    | '/_app/admin/approvals'
     | '/_app/admin/audit-log'
     | '/_app/admin/committees'
     | '/_app/admin/hostel'
@@ -1157,6 +1169,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminAuditLogRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/admin/approvals': {
+      id: '/_app/admin/approvals'
+      path: '/admin/approvals'
+      fullPath: '/admin/approvals'
+      preLoaderRoute: typeof AppAdminApprovalsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/academic/timetable': {
       id: '/_app/academic/timetable'
       path: '/academic/timetable'
@@ -1403,6 +1422,7 @@ interface AppRouteChildren {
   AppAcademicStudyMaterialRoute: typeof AppAcademicStudyMaterialRoute
   AppAcademicSubjectsRoute: typeof AppAcademicSubjectsRoute
   AppAcademicTimetableRoute: typeof AppAcademicTimetableRoute
+  AppAdminApprovalsRoute: typeof AppAdminApprovalsRoute
   AppAdminAuditLogRoute: typeof AppAdminAuditLogRoute
   AppAdminCommitteesRoute: typeof AppAdminCommitteesRoute
   AppAdminHostelRoute: typeof AppAdminHostelRoute
@@ -1464,6 +1484,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAcademicStudyMaterialRoute: AppAcademicStudyMaterialRoute,
   AppAcademicSubjectsRoute: AppAcademicSubjectsRoute,
   AppAcademicTimetableRoute: AppAcademicTimetableRoute,
+  AppAdminApprovalsRoute: AppAdminApprovalsRoute,
   AppAdminAuditLogRoute: AppAdminAuditLogRoute,
   AppAdminCommitteesRoute: AppAdminCommitteesRoute,
   AppAdminHostelRoute: AppAdminHostelRoute,

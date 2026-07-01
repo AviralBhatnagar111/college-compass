@@ -146,7 +146,7 @@ function ApprovalCenter() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Approval Center" subtitle="One desk for every pending decision across access, finance, scholarships, and leaves." icon={Inbox} />
+      <PageHeader title="Approval Center" subtitle="One desk for every pending decision across access, finance, scholarships, and leaves." />
       <div className="flex gap-2">
         <Input value={q} onChange={e => setQ(e.target.value)} placeholder="Filter approvals…" className="max-w-sm" />
         <Badge variant="secondary" className="self-center">{count("all")} pending</Badge>
