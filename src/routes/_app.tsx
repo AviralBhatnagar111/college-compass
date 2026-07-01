@@ -194,10 +194,17 @@ function AppLayout() {
               </>
             )}
           </div>
-          <div className="relative flex-1 md:max-w-md">
+          <button
+            type="button"
+            onClick={() => cmd.setOpen(true)}
+            className="relative flex-1 md:max-w-md text-left"
+          >
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Search students, faculty, classes, drives…  ⌘K" className="pl-9" />
-          </div>
+            <span className="flex h-9 w-full items-center rounded-md border border-input bg-background pl-9 pr-3 text-sm text-muted-foreground">
+              Search students, faculty, drives…
+              <kbd className="ml-auto rounded border bg-muted px-1.5 py-0.5 text-[10px] font-medium">⌘K</kbd>
+            </span>
+          </button>
           <div className="flex items-center gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
