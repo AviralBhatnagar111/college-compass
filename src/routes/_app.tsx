@@ -126,8 +126,9 @@ function AppLayout() {
   const logout = useAuthStore(s => s.logout);
   const notifications = useCommStore(s => s.notifications).filter(n => !user || n.userId === user.id);
   const todoCount = notifications.filter(n => n.type === "todo").length;
-
-  if (!hydrated || !user) {
+  const myOpenTasks = useTaskStore(s => s.tasks).filter(t => t.status === "open" && (!user || t.assigneeId === user.id)).length;
+  const pendingAccess = useAccessStore(s => s.requests).filter(r => r.status === "pending").length;
+  const cmd = useCommandPalette();
     return <div className="flex min-h-screen items-center justify-center bg-background text-muted-foreground">Loading…</div>;
   }
 
