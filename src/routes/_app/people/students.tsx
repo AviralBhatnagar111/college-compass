@@ -146,7 +146,7 @@ function StudentsPage() {
               <tr><th className="px-4 py-2">Student</th><th>Roll No</th><th>Section</th><th>CGPA</th><th>Attendance</th><th>Backlogs</th></tr>
             </thead>
             <tbody className="divide-y">
-              {filtered.slice(0, 100).map(s => (
+              {filtered.map(s => (
                 <tr key={s.id} className="hover:bg-accent/40">
                   <td className="px-4 py-2">
                     <Link to="/people/students/$id" params={{ id: s.id }} className="flex items-center gap-2">

@@ -15,6 +15,9 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { ROLE_LABEL } from "@/lib/types";
 import { DEMO_USER_IDS, INSTITUTION } from "@/data/seed";
 import { RouteErrorBoundary } from "@/components/common/RouteErrorBoundary";
+import { CommandPalette, useCommandPalette } from "@/components/common/CommandPalette";
+import { useTaskStore } from "@/stores/tasks";
+import { useAccessStore } from "@/stores";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, BookOpen, GraduationCap, Users, Wallet, ShieldCheck,
@@ -22,7 +25,7 @@ import {
   LogOut, ChevronLeft, ChevronRight, UserCircle2, Calendar, ClipboardList,
   Building2, Briefcase, Bot, BadgeCheck, Lock, FileText, FolderTree,
   History, KeyRound, ListChecks, BookMarked, MonitorPlay, Award,
-  Repeat,
+  Repeat, Inbox, CheckSquare,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_app")({
@@ -98,6 +101,8 @@ const NAV: { group: string; items: { to: string; label: string; icon: any; navKe
     { to: "/analytics/reports", label: "Reports", icon: BarChart3, navKey: "nav.analytics" },
   ]},
   { group: "ADMINISTRATION", items: [
+    { to: "/admin/approvals", label: "Approval Center", icon: Inbox, navKey: "nav.admin" },
+    { to: "/my/tasks", label: "My Tasks", icon: CheckSquare },
     { to: "/admin/access-control", label: "Access Control", icon: KeyRound, navKey: "nav.admin" },
     { to: "/admin/org-structure", label: "Org Structure", icon: FolderTree, navKey: "nav.admin" },
     { to: "/admin/committees", label: "Committees", icon: Users, navKey: "nav.admin" },
@@ -121,6 +126,9 @@ function AppLayout() {
   const logout = useAuthStore(s => s.logout);
   const notifications = useCommStore(s => s.notifications).filter(n => !user || n.userId === user.id);
   const todoCount = notifications.filter(n => n.type === "todo").length;
+  const myOpenTasks = useTaskStore(s => s.tasks).filter(t => t.status === "open" && (!user || t.assigneeId === user.id)).length;
+  const pendingAccess = useAccessStore(s => s.requests).filter(r => r.status === "pending").length;
+  const cmd = useCommandPalette();
 
   if (!hydrated || !user) {
     return <div className="flex min-h-screen items-center justify-center bg-background text-muted-foreground">Loading…</div>;
@@ -186,10 +194,17 @@ function AppLayout() {
               </>
             )}
           </div>
-          <div className="relative flex-1 md:max-w-md">
+          <button
+            type="button"
+            onClick={() => cmd.setOpen(true)}
+            className="relative flex-1 md:max-w-md text-left"
+          >
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Search students, faculty, classes, drives…  ⌘K" className="pl-9" />
-          </div>
+            <span className="flex h-9 w-full items-center rounded-md border border-input bg-background pl-9 pr-3 text-sm text-muted-foreground">
+              Search students, faculty, drives…
+              <kbd className="ml-auto rounded border bg-muted px-1.5 py-0.5 text-[10px] font-medium">⌘K</kbd>
+            </span>
+          </button>
           <div className="flex items-center gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -216,7 +231,16 @@ function AppLayout() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Button variant="ghost" size="icon"><Plus className="h-4 w-4" /></Button>
+            <Button asChild variant="ghost" size="sm" className="relative gap-1 px-2">
+              <Link to="/admin/approvals"><Inbox className="h-4 w-4" /><span className="hidden lg:inline">Approvals</span>
+                {pendingAccess > 0 && <Badge className="ml-1 h-4 min-w-4 px-1 text-[9px]">{pendingAccess}</Badge>}
+              </Link>
+            </Button>
+            <Button asChild variant="ghost" size="sm" className="relative gap-1 px-2">
+              <Link to="/my/tasks"><CheckSquare className="h-4 w-4" /><span className="hidden lg:inline">Tasks</span>
+                {myOpenTasks > 0 && <Badge className="ml-1 h-4 min-w-4 px-1 text-[9px]">{myOpenTasks}</Badge>}
+              </Link>
+            </Button>
 
             <Popover>
               <PopoverTrigger asChild>
@@ -269,6 +293,7 @@ function AppLayout() {
           </RouteErrorBoundary>
         </main>
       </div>
+      <CommandPalette open={cmd.open} onOpenChange={cmd.setOpen} />
     </div>
   );
 }

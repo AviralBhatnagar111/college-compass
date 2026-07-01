@@ -317,10 +317,20 @@ export const seedFeeStructures: FeeStructure[] = [
 // 140 students. 126 paid Sem 5 tuition ₹60K each = ₹75.6L collected.
 // 14 defaulters with variable balances summing to ₹8,17,489 (matches Defaulters page).
 const DEFAULTER_AMOUNTS = [85000, 72000, 68000, 63000, 61000, 58000, 55000, 54000, 51000, 49000, 47000, 42000, 38000, 74489];
+// Spread the 14 defaulters across sections instead of clustering at the tail.
+const _defaulterIdx = new Map<number, number>();
+{
+  const step = Math.max(1, Math.floor(students.length / DEFAULTER_AMOUNTS.length));
+  for (let k = 0; k < DEFAULTER_AMOUNTS.length; k++) {
+    const idx = Math.min(students.length - 1, k * step + (k % 3));
+    _defaulterIdx.set(idx, DEFAULTER_AMOUNTS[k]);
+  }
+}
 const _ledger: LedgerEntry[] = [];
 students.forEach((stu, i) => {
-  const isDefaulter = i >= students.length - 14;
-  const amount = isDefaulter ? DEFAULTER_AMOUNTS[i - (students.length - 14)] : 60000;
+  const defaultAmt = _defaulterIdx.get(i);
+  const isDefaulter = defaultAmt !== undefined;
+  const amount = isDefaulter ? defaultAmt! : 60000;
   _ledger.push({ id: `L_${stu.id}_C`, studentId: stu.id, date: daysAgo(60), head: "Tuition Fee — Sem 5", charge: amount, balance: amount });
   if (!isDefaulter) {
     _ledger.push({ id: `L_${stu.id}_P`, studentId: stu.id, date: daysAgo(45 - (i % 30)), head: "Online Payment (Razorpay)", payment: 60000, balance: 0 });
@@ -399,8 +409,10 @@ export const INSTITUTION = {
   type: "Affiliated Engineering College",
   founded: 2008,
   students: 140,
-  faculty: 26,
-  facultySanctioned: 30,
+  faculty: 32,
+  facultySanctioned: 34,
+  facultyVacant: 2,
+  facultyTotal: 41,
   departments: 6,
   accreditation: "NAAC Accredited · MBGL Level 3 · valid till Mar 2028",
   naacTarget: "Targeting Level 4",
