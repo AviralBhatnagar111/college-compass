@@ -618,6 +618,9 @@ function HoiDashboard() {
           toast.success("AQAR draft committed", { description: "IQAC notified for review" });
         }}
       />
+      <DepartmentDrawer open={!!deptDrawer} onOpenChange={(v) => !v && setDeptDrawer(null)} dept={deptDrawer} />
+      <FunnelStageDrawer open={!!funnelDrawer} onOpenChange={(v) => !v && setFunnelDrawer(null)} stage={funnelDrawer} />
+      <NaacCriterionDrawer open={!!critDrawer} onOpenChange={(v) => !v && setCritDrawer(null)} crit={critDrawer} />
     </>
   );
 }
