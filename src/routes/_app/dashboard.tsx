@@ -88,6 +88,7 @@ import {
   AqarDraftDialog,
 } from "@/components/dashboard/HoiWidgets";
 import { useDashApprovalStore } from "@/stores/dashboardApprovals";
+import { DepartmentDrawer, FunnelStageDrawer, NaacCriterionDrawer, type DeptRow, type FunnelStage, type NaacCrit } from "@/components/dashboard/DrillDowns";
 
 function HoiDashboard() {
   const { user } = useAccess();
@@ -159,6 +160,9 @@ function HoiDashboard() {
   const [alertDept, setAlertDept] = useState<string | null>(null);
   const [explainKey, setExplainKey] = useState<null | "students" | "faculty" | "attendance" | "collection" | "placement" | "naac">(null);
   const [assignFlag, setAssignFlag] = useState<null | { defaultTitle: string; source: string }>(null);
+  const [deptDrawer, setDeptDrawer] = useState<DeptRow | null>(null);
+  const [funnelDrawer, setFunnelDrawer] = useState<FunnelStage | null>(null);
+  const [critDrawer, setCritDrawer] = useState<NaacCrit | null>(null);
 
   // ── KPI numerics (period-cascaded where it makes sense) ────────────────
   const monthCollection = Math.round(2180000 * pf);
@@ -467,7 +471,7 @@ function HoiDashboard() {
             ].map(([l,v,w,stage]) => (
               <li key={l as string}>
                 <button
-                  onClick={() => { toast(`${l} cohort`, { description: `${v} prospects · open list` }); navigate({ to: "/people/students", search: { stage } as any }); }}
+                  onClick={() => setFunnelDrawer({ label: l as string, count: v as number, conv: w as number, stage: stage as string })}
                   className="w-full space-y-0.5 rounded px-1 py-0.5 text-left hover:bg-accent"
                 >
                   <div className="flex justify-between text-[11px]"><span>{l as string}</span><span className="font-medium">{v as number}</span></div>
@@ -488,7 +492,7 @@ function HoiDashboard() {
             <thead className="text-[10px] uppercase text-muted-foreground"><tr><th className="text-left pb-1">Dept</th><th className="text-right pb-1">Att%</th><th className="text-right pb-1">Plc%</th><th className="text-right pb-1">Health</th></tr></thead>
             <tbody>
               {[["CSE",94,82,"green"],["ECE",90,76,"green"],["ME",68,58,"red"],["CIVIL",87,65,"amber"],["BIOTECH",91,48,"amber"]].map(([d,a,p,h]) => (
-                <tr key={d as string} className="cursor-pointer border-t hover:bg-accent" onClick={() => navigate({ to: "/people/faculty" })}>
+                <tr key={d as string} className="cursor-pointer border-t hover:bg-accent" onClick={() => setDeptDrawer({ code: d as string, att: a as number, plc: p as number, health: h as any })}>
                   <td className="py-1.5 font-medium underline-offset-2 hover:underline">{d as string}</td>
                   <td className="text-right">{a as number}%</td>
                   <td className="text-right">{p as number}%</td>
@@ -503,10 +507,10 @@ function HoiDashboard() {
           <h3 className="mb-3 text-sm font-semibold">NAAC Criterion Status</h3>
           <div className="grid grid-cols-4 gap-2">
             {criteria.map(c => (
-              <Link key={c.id} to="/compliance/naac" className="flex flex-col items-center rounded-md border p-2 hover:bg-accent">
+              <button key={c.id} type="button" onClick={() => setCritDrawer({ id: c.id, number: c.number, name: c.name, readiness: c.readiness, status: c.status })} className="flex flex-col items-center rounded-md border p-2 hover:bg-accent">
                 <div className={`text-xs font-semibold ${c.status === "green" ? "text-lnx-green-500" : c.status === "amber" ? "text-lnx-amber-500" : "text-lnx-red-500"}`}>{c.readiness}%</div>
                 <div className="text-[9px] text-center mt-0.5">C{c.number}</div>
-              </Link>
+              </button>
             ))}
           </div>
           <Button size="sm" variant="outline" className="mt-3 w-full" onClick={() => setAqarOpen(true)}>
@@ -614,6 +618,9 @@ function HoiDashboard() {
           toast.success("AQAR draft committed", { description: "IQAC notified for review" });
         }}
       />
+      <DepartmentDrawer open={!!deptDrawer} onOpenChange={(v) => !v && setDeptDrawer(null)} dept={deptDrawer} />
+      <FunnelStageDrawer open={!!funnelDrawer} onOpenChange={(v) => !v && setFunnelDrawer(null)} stage={funnelDrawer} />
+      <NaacCriterionDrawer open={!!critDrawer} onOpenChange={(v) => !v && setCritDrawer(null)} crit={critDrawer} />
     </>
   );
 }
