@@ -14,10 +14,14 @@ export function DepartmentDrawer({ open, onOpenChange, dept }: {
   open: boolean; onOpenChange: (v: boolean) => void; dept: DeptRow | null;
 }) {
   if (!dept) return null;
-  const facN = dept.faculty ?? { CSE: 8, ECE: 6, ME: 5, CIVIL: 4, BIOTECH: 3 }[dept.code as any] ?? 5;
-  const stuN = dept.students ?? { CSE: 42, ECE: 34, ME: 28, CIVIL: 22, BIOTECH: 14 }[dept.code as any] ?? 25;
-  const pass = dept.passPct ?? { CSE: 92, ECE: 88, ME: 72, CIVIL: 84, BIOTECH: 78 }[dept.code as any] ?? 80;
-  const cap = dept.capstone ?? { CSE: 12, ECE: 9, ME: 6, CIVIL: 5, BIOTECH: 3 }[dept.code as any] ?? 6;
+  const FAC: Record<string, number> = { CSE: 8, ECE: 6, ME: 5, CIVIL: 4, BIOTECH: 3 };
+  const STU: Record<string, number> = { CSE: 42, ECE: 34, ME: 28, CIVIL: 22, BIOTECH: 14 };
+  const PASS: Record<string, number> = { CSE: 92, ECE: 88, ME: 72, CIVIL: 84, BIOTECH: 78 };
+  const CAP: Record<string, number> = { CSE: 12, ECE: 9, ME: 6, CIVIL: 5, BIOTECH: 3 };
+  const facN = dept.faculty ?? FAC[dept.code] ?? 5;
+  const stuN = dept.students ?? STU[dept.code] ?? 25;
+  const pass = dept.passPct ?? PASS[dept.code] ?? 80;
+  const cap = dept.capstone ?? CAP[dept.code] ?? 6;
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-md overflow-y-auto">
