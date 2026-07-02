@@ -160,6 +160,9 @@ function HoiDashboard() {
   const [alertDept, setAlertDept] = useState<string | null>(null);
   const [explainKey, setExplainKey] = useState<null | "students" | "faculty" | "attendance" | "collection" | "placement" | "naac">(null);
   const [assignFlag, setAssignFlag] = useState<null | { defaultTitle: string; source: string }>(null);
+  const [deptDrawer, setDeptDrawer] = useState<DeptRow | null>(null);
+  const [funnelDrawer, setFunnelDrawer] = useState<FunnelStage | null>(null);
+  const [critDrawer, setCritDrawer] = useState<NaacCrit | null>(null);
 
   // ── KPI numerics (period-cascaded where it makes sense) ────────────────
   const monthCollection = Math.round(2180000 * pf);
