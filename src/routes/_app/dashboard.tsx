@@ -471,7 +471,7 @@ function HoiDashboard() {
             ].map(([l,v,w,stage]) => (
               <li key={l as string}>
                 <button
-                  onClick={() => { toast(`${l} cohort`, { description: `${v} prospects · open list` }); navigate({ to: "/people/students", search: { stage } as any }); }}
+                  onClick={() => setFunnelDrawer({ label: l as string, count: v as number, conv: w as number, stage: stage as string })}
                   className="w-full space-y-0.5 rounded px-1 py-0.5 text-left hover:bg-accent"
                 >
                   <div className="flex justify-between text-[11px]"><span>{l as string}</span><span className="font-medium">{v as number}</span></div>
