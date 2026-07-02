@@ -507,10 +507,10 @@ function HoiDashboard() {
           <h3 className="mb-3 text-sm font-semibold">NAAC Criterion Status</h3>
           <div className="grid grid-cols-4 gap-2">
             {criteria.map(c => (
-              <Link key={c.id} to="/compliance/naac" className="flex flex-col items-center rounded-md border p-2 hover:bg-accent">
+              <button key={c.id} type="button" onClick={() => setCritDrawer({ id: c.id, number: c.number, name: c.name, readiness: c.readiness, status: c.status })} className="flex flex-col items-center rounded-md border p-2 hover:bg-accent">
                 <div className={`text-xs font-semibold ${c.status === "green" ? "text-lnx-green-500" : c.status === "amber" ? "text-lnx-amber-500" : "text-lnx-red-500"}`}>{c.readiness}%</div>
                 <div className="text-[9px] text-center mt-0.5">C{c.number}</div>
-              </Link>
+              </button>
             ))}
           </div>
           <Button size="sm" variant="outline" className="mt-3 w-full" onClick={() => setAqarOpen(true)}>
