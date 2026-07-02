@@ -88,6 +88,7 @@ import {
   AqarDraftDialog,
 } from "@/components/dashboard/HoiWidgets";
 import { useDashApprovalStore } from "@/stores/dashboardApprovals";
+import { DepartmentDrawer, FunnelStageDrawer, NaacCriterionDrawer, type DeptRow, type FunnelStage, type NaacCrit } from "@/components/dashboard/DrillDowns";
 
 function HoiDashboard() {
   const { user } = useAccess();
