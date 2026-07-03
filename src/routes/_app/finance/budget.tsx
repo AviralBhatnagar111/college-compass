@@ -164,6 +164,33 @@ function BudgetPage() {
           <DialogFooter><Button variant="outline" onClick={()=>setOpenNew(false)}>Cancel</Button><Button onClick={submit}>Add</Button></DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Sheet open={!!detail} onOpenChange={v => !v && setDetail(null)}>
+        <SheetContent className="w-[480px] sm:max-w-[480px]">
+          <SheetHeader><SheetTitle>{sel?.category}</SheetTitle></SheetHeader>
+          {sel && edit && (
+            <div className="mt-4 space-y-4 text-sm">
+              <div className="flex items-center justify-between rounded-md bg-accent p-3">
+                <div><p className="text-xs text-muted-foreground">{sel.type === "income" ? "Income" : "Expense"} · {sel.owner}</p></div>
+                <Badge variant={sel.type === "income" ? "secondary" : "outline"} className={sel.type==="income"?"bg-lnx-green-500/10 text-lnx-green-500":""}>{Math.round((sel.actual/Math.max(1,sel.budget))*100)}% utilised</Badge>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label>Budget (₹)</Label><Input type="number" value={edit.budget} onChange={e=>setEdit({...edit, budget:+e.target.value})} /></div>
+                <div><Label>Actual (₹)</Label><Input type="number" value={edit.actual} onChange={e=>setEdit({...edit, actual:+e.target.value})} /></div>
+              </div>
+              <div className="rounded-md border p-3 text-xs space-y-1">
+                <div className="flex justify-between"><span className="text-muted-foreground">Variance</span><span className={`tabular font-semibold ${(edit.actual-edit.budget)>=0 && sel.type==="income" || (edit.actual-edit.budget)<0 && sel.type==="expense" ? "text-lnx-green-500":"text-lnx-red-500"}`}>{(edit.actual-edit.budget)>=0?"+":""}{lakh(edit.actual-edit.budget)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Progress</span><span className="tabular">{Math.round((edit.actual/Math.max(1,edit.budget))*100)}%</span></div>
+              </div>
+              <div className="rounded-md bg-muted/40 p-3 text-xs"><p className="font-medium mb-1">Notes</p><p className="text-muted-foreground">Reviewed at last Finance Committee. Owner: {sel.owner}. Any change above ₹5L requires Director sign-off.</p></div>
+              <div className="flex gap-2 pt-2 border-t">
+                <Button size="sm" variant="outline" className="flex-1" onClick={()=>setDetail(null)}>Cancel</Button>
+                <Button size="sm" className="flex-1" onClick={saveEdit}><Save className="h-3 w-3 mr-1" />Save changes</Button>
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
