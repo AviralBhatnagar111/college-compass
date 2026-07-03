@@ -10,12 +10,13 @@ import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useFinanceStore, useAccessStore } from "@/stores";
 import { useAccess } from "@/lib/access";
-import { TrendingUp, TrendingDown, Wallet, Receipt, Plus, IndianRupee } from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet, Receipt, Plus, IndianRupee, Save } from "lucide-react";
 
 export const Route = createFileRoute("/_app/finance/budget")({
   head: () => ({ meta: [{ title: "Budget vs Actual — LearnNowX" }] }),
