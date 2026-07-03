@@ -10,12 +10,13 @@ import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useFinanceStore, useAccessStore } from "@/stores";
 import { useAccess } from "@/lib/access";
-import { TrendingUp, TrendingDown, Wallet, Receipt, Plus, IndianRupee } from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet, Receipt, Plus, IndianRupee, Save } from "lucide-react";
 
 export const Route = createFileRoute("/_app/finance/budget")({
   head: () => ({ meta: [{ title: "Budget vs Actual — LearnNowX" }] }),
@@ -87,10 +88,23 @@ function BudgetPage() {
     setOpenNew(false); setNl({ category: "", type: "expense", budget: 0, actual: 0, owner: "" });
   };
 
+  const [detail, setDetail] = useState<string | null>(null);
+  const [edit, setEdit] = useState<{ budget: number; actual: number } | null>(null);
+  const openDetail = (l: BudgetLine) => { setDetail(l.id); setEdit({ budget: l.budget, actual: l.actual }); };
+  const sel = lines.find(l => l.id === detail);
+  const saveEdit = () => {
+    if (!sel || !edit) return;
+    const before = { budget: sel.budget, actual: sel.actual };
+    setLines(ls => ls.map(x => x.id === sel.id ? { ...x, budget: edit.budget, actual: edit.actual } : x));
+    audit(`Edited budget line: ${sel.category}`, `Budget ${lakh(before.budget)}→${lakh(edit.budget)}, Actual ${lakh(before.actual)}→${lakh(edit.actual)}`);
+    toast.success("Line updated");
+    setDetail(null);
+  };
+
   const Row = ({ l }: { l: BudgetLine }) => {
     const pct = Math.round((l.actual/Math.max(1,l.budget))*100);
     const variance = l.actual - l.budget;
-    return (<TableRow>
+    return (<TableRow className="cursor-pointer hover:bg-accent/40" onClick={()=>openDetail(l)}>
       <TableCell><div className="font-medium text-sm">{l.category}</div><div className="text-xs text-muted-foreground">{l.owner}</div></TableCell>
       <TableCell className="text-right tabular">{lakh(l.budget)}</TableCell>
       <TableCell className="text-right tabular font-semibold">{lakh(l.actual)}</TableCell>
@@ -150,6 +164,33 @@ function BudgetPage() {
           <DialogFooter><Button variant="outline" onClick={()=>setOpenNew(false)}>Cancel</Button><Button onClick={submit}>Add</Button></DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Sheet open={!!detail} onOpenChange={v => !v && setDetail(null)}>
+        <SheetContent className="w-[480px] sm:max-w-[480px]">
+          <SheetHeader><SheetTitle>{sel?.category}</SheetTitle></SheetHeader>
+          {sel && edit && (
+            <div className="mt-4 space-y-4 text-sm">
+              <div className="flex items-center justify-between rounded-md bg-accent p-3">
+                <div><p className="text-xs text-muted-foreground">{sel.type === "income" ? "Income" : "Expense"} · {sel.owner}</p></div>
+                <Badge variant={sel.type === "income" ? "secondary" : "outline"} className={sel.type==="income"?"bg-lnx-green-500/10 text-lnx-green-500":""}>{Math.round((sel.actual/Math.max(1,sel.budget))*100)}% utilised</Badge>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label>Budget (₹)</Label><Input type="number" value={edit.budget} onChange={e=>setEdit({...edit, budget:+e.target.value})} /></div>
+                <div><Label>Actual (₹)</Label><Input type="number" value={edit.actual} onChange={e=>setEdit({...edit, actual:+e.target.value})} /></div>
+              </div>
+              <div className="rounded-md border p-3 text-xs space-y-1">
+                <div className="flex justify-between"><span className="text-muted-foreground">Variance</span><span className={`tabular font-semibold ${(edit.actual-edit.budget)>=0 && sel.type==="income" || (edit.actual-edit.budget)<0 && sel.type==="expense" ? "text-lnx-green-500":"text-lnx-red-500"}`}>{(edit.actual-edit.budget)>=0?"+":""}{lakh(edit.actual-edit.budget)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Progress</span><span className="tabular">{Math.round((edit.actual/Math.max(1,edit.budget))*100)}%</span></div>
+              </div>
+              <div className="rounded-md bg-muted/40 p-3 text-xs"><p className="font-medium mb-1">Notes</p><p className="text-muted-foreground">Reviewed at last Finance Committee. Owner: {sel.owner}. Any change above ₹5L requires Director sign-off.</p></div>
+              <div className="flex gap-2 pt-2 border-t">
+                <Button size="sm" variant="outline" className="flex-1" onClick={()=>setDetail(null)}>Cancel</Button>
+                <Button size="sm" className="flex-1" onClick={saveEdit}><Save className="h-3 w-3 mr-1" />Save changes</Button>
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
