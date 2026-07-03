@@ -88,10 +88,23 @@ function BudgetPage() {
     setOpenNew(false); setNl({ category: "", type: "expense", budget: 0, actual: 0, owner: "" });
   };
 
+  const [detail, setDetail] = useState<string | null>(null);
+  const [edit, setEdit] = useState<{ budget: number; actual: number } | null>(null);
+  const openDetail = (l: BudgetLine) => { setDetail(l.id); setEdit({ budget: l.budget, actual: l.actual }); };
+  const sel = lines.find(l => l.id === detail);
+  const saveEdit = () => {
+    if (!sel || !edit) return;
+    const before = { budget: sel.budget, actual: sel.actual };
+    setLines(ls => ls.map(x => x.id === sel.id ? { ...x, budget: edit.budget, actual: edit.actual } : x));
+    audit(`Edited budget line: ${sel.category}`, `Budget ${lakh(before.budget)}→${lakh(edit.budget)}, Actual ${lakh(before.actual)}→${lakh(edit.actual)}`);
+    toast.success("Line updated");
+    setDetail(null);
+  };
+
   const Row = ({ l }: { l: BudgetLine }) => {
     const pct = Math.round((l.actual/Math.max(1,l.budget))*100);
     const variance = l.actual - l.budget;
-    return (<TableRow>
+    return (<TableRow className="cursor-pointer hover:bg-accent/40" onClick={()=>openDetail(l)}>
       <TableCell><div className="font-medium text-sm">{l.category}</div><div className="text-xs text-muted-foreground">{l.owner}</div></TableCell>
       <TableCell className="text-right tabular">{lakh(l.budget)}</TableCell>
       <TableCell className="text-right tabular font-semibold">{lakh(l.actual)}</TableCell>
