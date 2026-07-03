@@ -6,12 +6,13 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAccessStore } from "@/stores";
 import { useAccess } from "@/lib/access";
-import { Users, Plus, Shield } from "lucide-react";
+import { Users, Plus, Shield, Calendar, FileText } from "lucide-react";
 
 export const Route = createFileRoute("/_app/admin/committees")({
   head: () => ({ meta: [{ title: "Committees — LearnNowX" }] }),
