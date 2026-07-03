@@ -38,6 +38,7 @@ function CommitteesPage() {
   ]);
 
   const [openNew, setOpenNew] = useState(false);
+  const [detail, setDetail] = useState<string | null>(null);
   const [nc, setNc] = useState({ name: "", chair: "", members: "", mandate: "" });
   const submit = () => {
     if (!nc.name || !nc.chair) { toast.error("Name and chair required"); return; }
@@ -47,6 +48,22 @@ function CommitteesPage() {
     setOpenNew(false); setNc({ name: "", chair: "", members: "", mandate: "" });
   };
 
+  const sel = list.find(c => c.id === detail);
+  const meetingsFor = (id: string) => {
+    const seed = id.charCodeAt(2) % 5;
+    const topics = ["AQAR Q3 review", "Grievance case follow-up", "Semester audit sign-off", "Statutory report submission", "Policy amendment", "Budget allocation", "Recruitment approval"];
+    return Array.from({ length: 3 + seed }).map((_, i) => ({
+      date: new Date(Date.now() - (i * 45 + seed * 7) * 86400000).toISOString(),
+      agenda: topics[(i + seed) % topics.length],
+      decisions: `${1 + ((i + seed) % 3)} action items`,
+    }));
+  };
+  const logMeeting = (c: Committee) => {
+    setList(ls => ls.map(x => x.id === c.id ? { ...x, meetings: x.meetings + 1 } : x));
+    audit("Logged committee meeting", c.name);
+    toast.success("Meeting recorded");
+  };
+
   return (
     <div>
       <PageHeader title="Committees" subtitle="Statutory & functional committees with chair and members"
@@ -54,7 +71,7 @@ function CommitteesPage() {
 
       <div className="grid md:grid-cols-2 gap-4">
         {list.map(c => (
-          <Card key={c.id} className="p-5">
+          <Card key={c.id} className="p-5 cursor-pointer hover:border-lnx-teal-500 transition" onClick={()=>setDetail(c.id)}>
             <div className="flex items-start justify-between mb-3">
               <div className="flex items-start gap-2"><Shield className="h-4 w-4 text-lnx-teal-500 mt-1" /><div><h3 className="font-semibold text-lnx-navy-800">{c.name}</h3><p className="text-xs text-muted-foreground mt-1">{c.mandate}</p></div></div>
               <Badge variant="outline">{c.meetings} meetings</Badge>
@@ -66,6 +83,35 @@ function CommitteesPage() {
           </Card>
         ))}
       </div>
+
+      <Sheet open={!!detail} onOpenChange={v => !v && setDetail(null)}>
+        <SheetContent className="w-[520px] sm:max-w-[520px] overflow-y-auto">
+          <SheetHeader><SheetTitle>{sel?.name}</SheetTitle></SheetHeader>
+          {sel && (
+            <div className="mt-4 space-y-4 text-sm">
+              <div className="rounded-md bg-accent p-3 text-xs"><p className="font-medium mb-1">Mandate</p><p className="text-muted-foreground">{sel.mandate}</p></div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="rounded border p-3"><p className="text-xs text-muted-foreground">Chair</p><p className="font-medium text-xs">{sel.chair}</p></div>
+                <div className="rounded border p-3"><p className="text-xs text-muted-foreground">Meetings YTD</p><p className="font-bold tabular text-lnx-teal-500">{sel.meetings}</p></div>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase text-muted-foreground mb-2">Members ({sel.members.length})</p>
+                <div className="space-y-1">{sel.members.map((m, i) => <div key={i} className="rounded border p-2 text-xs">{m}</div>)}</div>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase text-muted-foreground mb-2 flex items-center gap-1"><Calendar className="h-3 w-3" />Recent Meetings</p>
+                <div className="space-y-1">{meetingsFor(sel.id).map((m, i) => (
+                  <div key={i} className="rounded border p-2 text-xs"><div className="flex justify-between"><span className="font-medium">{m.agenda}</span><span className="text-muted-foreground">{new Date(m.date).toLocaleDateString("en-IN",{day:"2-digit",month:"short",year:"numeric"})}</span></div><p className="text-muted-foreground">{m.decisions}</p></div>
+                ))}</div>
+              </div>
+              <div className="flex gap-2 pt-2 border-t">
+                <Button size="sm" variant="outline" className="flex-1" onClick={()=>{ audit("Downloaded minutes", sel.name); toast.success("Minutes exported"); }}><FileText className="h-3 w-3 mr-1" />Export minutes</Button>
+                <Button size="sm" className="flex-1" onClick={()=>logMeeting(sel)}><Plus className="h-3 w-3 mr-1" />Log meeting</Button>
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
 
       <Dialog open={openNew} onOpenChange={setOpenNew}>
         <DialogContent><DialogHeader><DialogTitle>Constitute Committee</DialogTitle></DialogHeader>
