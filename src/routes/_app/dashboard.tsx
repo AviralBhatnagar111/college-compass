@@ -522,7 +522,14 @@ function HoiDashboard() {
         </Card>
 
         <Card className="p-4">
-          <h3 className="mb-3 text-sm font-semibold">NAAC Criterion Status</h3>
+          <div className="mb-2 flex items-center justify-between">
+            <h3 className="text-sm font-semibold">NAAC Criterion Status</h3>
+            <div className="flex items-center gap-1.5 text-[10px]">
+              <span className="rounded bg-lnx-green-500/10 px-1.5 py-0.5 text-lnx-green-500">Green {criteria.filter(c => c.status === "green").length}</span>
+              <span className="rounded bg-lnx-amber-500/10 px-1.5 py-0.5 text-lnx-amber-500">Amber {criteria.filter(c => c.status === "amber").length}</span>
+              <span className="rounded bg-lnx-red-500/10 px-1.5 py-0.5 text-lnx-red-500">Red {criteria.filter(c => c.status === "red").length}</span>
+            </div>
+          </div>
           <div className="grid grid-cols-4 gap-2">
             {criteria.map(c => (
               <button key={c.id} type="button" onClick={() => setCritDrawer({ id: c.id, number: c.number, name: c.name, readiness: c.readiness, status: c.status })} className="flex flex-col items-center rounded-md border p-2 hover:bg-accent">
