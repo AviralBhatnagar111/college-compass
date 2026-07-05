@@ -116,9 +116,25 @@ function HoiDashboard() {
   const [period, setPeriod] = useState<Period>("month");
   const pf = periodFactor(period);
 
+  // Single source of truth for department rows (used by table + attendance mean)
+  const DEPT_DATA = useMemo(() => ([
+    { code: "CSE", att: 94, plc: 82 },
+    { code: "ECE", att: 90, plc: 76 },
+    { code: "ME",  att: 68, plc: 58 },
+    { code: "CIVIL", att: 87, plc: 65 },
+    { code: "BIOTECH", att: 91, plc: 48 },
+  ] as const).map(d => {
+    const enrol = Math.max(1, students.filter(s => s.department === d.code).length);
+    const health: "green" | "amber" | "red" =
+      d.att >= 85 && d.plc >= 70 ? "green"
+      : d.att < 75 || d.plc < 55 ? "red"
+      : "amber";
+    return { ...d, enrol, health };
+  }), [students]);
+
   // Approval queues — seeded once, decisions persisted in store
   const baseQueues = useMemo(() => ({
-    access: requests.filter(r => r.change.toLowerCase().includes("access")),
+    access: requests, // every pending access-control request (reconciles the top-bar badge)
     waivers: [
       { id: "wv1", userId: "u_stu_002", requestedBy: "u_registrar", requestedAt: new Date(Date.now()-2*864e5).toISOString(), change: "Fee waiver 30%", reason: "Single-parent income certificate verified", status: "pending" as const },
       { id: "wv2", userId: "u_stu_005", requestedBy: "u_registrar", requestedAt: new Date(Date.now()-3*864e5).toISOString(), change: "Fee waiver 50%", reason: "EWS category, family income < 2.5L", status: "pending" as const },
