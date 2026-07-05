@@ -183,7 +183,9 @@ function HoiDashboard() {
   // ── KPI numerics (period-cascaded where it makes sense) ────────────────
   const monthCollection = Math.round(2180000 * pf);
   const ytdCollection = 10500000;
-  const todaysAttendance = period === "today" ? 91 : period === "week" ? 90 : period === "month" ? 89 : 88;
+  const _enrolTotal = DEPT_DATA.reduce((a, d) => a + d.enrol, 0) || 1;
+  const _weightedAtt = Math.round(DEPT_DATA.reduce((a, d) => a + d.att * d.enrol, 0) / _enrolTotal);
+  const todaysAttendance = period === "today" ? _weightedAtt + 2 : period === "week" ? _weightedAtt + 1 : period === "month" ? _weightedAtt : _weightedAtt - 1;
   const placementPct = 76;
 
   const sparks = {
