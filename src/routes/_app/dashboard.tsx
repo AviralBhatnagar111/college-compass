@@ -509,11 +509,11 @@ function HoiDashboard() {
           <table className="w-full text-xs">
             <thead className="text-[10px] uppercase text-muted-foreground"><tr><th className="text-left pb-1">Dept</th><th className="text-right pb-1">Att%</th><th className="text-right pb-1">Plc%</th><th className="text-right pb-1">Health</th></tr></thead>
             <tbody>
-              {[["CSE",94,82,"green"],["ECE",90,76,"green"],["ME",68,58,"red"],["CIVIL",87,65,"amber"],["BIOTECH",91,48,"amber"]].map(([d,a,p,h]) => (
-                <tr key={d as string} className="cursor-pointer border-t hover:bg-accent" onClick={() => setDeptDrawer({ code: d as string, att: a as number, plc: p as number, health: h as any })}>
-                  <td className="py-1.5 font-medium underline-offset-2 hover:underline">{d as string}</td>
-                  <td className="text-right">{a as number}%</td>
-                  <td className="text-right">{p as number}%</td>
+              {DEPT_DATA.map(({ code: d, att: a, plc: p, health: h }) => (
+                <tr key={d} className="cursor-pointer border-t hover:bg-accent" onClick={() => setDeptDrawer({ code: d, att: a, plc: p, health: h })}>
+                  <td className="py-1.5 font-medium underline-offset-2 hover:underline">{d}</td>
+                  <td className="text-right">{a}%</td>
+                  <td className="text-right">{p}%</td>
                   <td className="text-right"><span className={`inline-block h-2 w-2 rounded-full ${h === "green" ? "bg-lnx-green-500" : h === "amber" ? "bg-lnx-amber-500" : "bg-lnx-red-500"}`} /></td>
                 </tr>
               ))}
