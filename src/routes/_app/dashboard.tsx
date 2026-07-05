@@ -116,9 +116,25 @@ function HoiDashboard() {
   const [period, setPeriod] = useState<Period>("month");
   const pf = periodFactor(period);
 
+  // Single source of truth for department rows (used by table + attendance mean)
+  const DEPT_DATA = useMemo(() => ([
+    { code: "CSE", att: 94, plc: 82 },
+    { code: "ECE", att: 90, plc: 76 },
+    { code: "ME",  att: 68, plc: 58 },
+    { code: "CIVIL", att: 87, plc: 65 },
+    { code: "BIOTECH", att: 91, plc: 48 },
+  ] as const).map(d => {
+    const enrol = Math.max(1, students.filter(s => s.department === d.code).length);
+    const health: "green" | "amber" | "red" =
+      d.att >= 85 && d.plc >= 70 ? "green"
+      : d.att < 75 || d.plc < 55 ? "red"
+      : "amber";
+    return { ...d, enrol, health };
+  }), [students]);
+
   // Approval queues — seeded once, decisions persisted in store
   const baseQueues = useMemo(() => ({
-    access: requests.filter(r => r.change.toLowerCase().includes("access")),
+    access: requests, // every pending access-control request (reconciles the top-bar badge)
     waivers: [
       { id: "wv1", userId: "u_stu_002", requestedBy: "u_registrar", requestedAt: new Date(Date.now()-2*864e5).toISOString(), change: "Fee waiver 30%", reason: "Single-parent income certificate verified", status: "pending" as const },
       { id: "wv2", userId: "u_stu_005", requestedBy: "u_registrar", requestedAt: new Date(Date.now()-3*864e5).toISOString(), change: "Fee waiver 50%", reason: "EWS category, family income < 2.5L", status: "pending" as const },
@@ -167,7 +183,9 @@ function HoiDashboard() {
   // ── KPI numerics (period-cascaded where it makes sense) ────────────────
   const monthCollection = Math.round(2180000 * pf);
   const ytdCollection = 10500000;
-  const todaysAttendance = period === "today" ? 91 : period === "week" ? 90 : period === "month" ? 89 : 88;
+  const _enrolTotal = DEPT_DATA.reduce((a, d) => a + d.enrol, 0) || 1;
+  const _weightedAtt = Math.round(DEPT_DATA.reduce((a, d) => a + d.att * d.enrol, 0) / _enrolTotal);
+  const todaysAttendance = period === "today" ? _weightedAtt + 2 : period === "week" ? _weightedAtt + 1 : period === "month" ? _weightedAtt : _weightedAtt - 1;
   const placementPct = 76;
 
   const sparks = {
@@ -491,11 +509,11 @@ function HoiDashboard() {
           <table className="w-full text-xs">
             <thead className="text-[10px] uppercase text-muted-foreground"><tr><th className="text-left pb-1">Dept</th><th className="text-right pb-1">Att%</th><th className="text-right pb-1">Plc%</th><th className="text-right pb-1">Health</th></tr></thead>
             <tbody>
-              {[["CSE",94,82,"green"],["ECE",90,76,"green"],["ME",68,58,"red"],["CIVIL",87,65,"amber"],["BIOTECH",91,48,"amber"]].map(([d,a,p,h]) => (
-                <tr key={d as string} className="cursor-pointer border-t hover:bg-accent" onClick={() => setDeptDrawer({ code: d as string, att: a as number, plc: p as number, health: h as any })}>
-                  <td className="py-1.5 font-medium underline-offset-2 hover:underline">{d as string}</td>
-                  <td className="text-right">{a as number}%</td>
-                  <td className="text-right">{p as number}%</td>
+              {DEPT_DATA.map(({ code: d, att: a, plc: p, health: h }) => (
+                <tr key={d} className="cursor-pointer border-t hover:bg-accent" onClick={() => setDeptDrawer({ code: d, att: a, plc: p, health: h })}>
+                  <td className="py-1.5 font-medium underline-offset-2 hover:underline">{d}</td>
+                  <td className="text-right">{a}%</td>
+                  <td className="text-right">{p}%</td>
                   <td className="text-right"><span className={`inline-block h-2 w-2 rounded-full ${h === "green" ? "bg-lnx-green-500" : h === "amber" ? "bg-lnx-amber-500" : "bg-lnx-red-500"}`} /></td>
                 </tr>
               ))}
@@ -504,7 +522,14 @@ function HoiDashboard() {
         </Card>
 
         <Card className="p-4">
-          <h3 className="mb-3 text-sm font-semibold">NAAC Criterion Status</h3>
+          <div className="mb-2 flex items-center justify-between">
+            <h3 className="text-sm font-semibold">NAAC Criterion Status</h3>
+            <div className="flex items-center gap-1.5 text-[10px]">
+              <span className="rounded bg-lnx-green-500/10 px-1.5 py-0.5 text-lnx-green-500">Green {criteria.filter(c => c.status === "green").length}</span>
+              <span className="rounded bg-lnx-amber-500/10 px-1.5 py-0.5 text-lnx-amber-500">Amber {criteria.filter(c => c.status === "amber").length}</span>
+              <span className="rounded bg-lnx-red-500/10 px-1.5 py-0.5 text-lnx-red-500">Red {criteria.filter(c => c.status === "red").length}</span>
+            </div>
+          </div>
           <div className="grid grid-cols-4 gap-2">
             {criteria.map(c => (
               <button key={c.id} type="button" onClick={() => setCritDrawer({ id: c.id, number: c.number, name: c.name, readiness: c.readiness, status: c.status })} className="flex flex-col items-center rounded-md border p-2 hover:bg-accent">

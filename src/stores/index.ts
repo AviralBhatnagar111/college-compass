@@ -188,7 +188,7 @@ export const useFinanceStore = create<FinanceState>()(
       addStructure: (f) => set((s) => ({ structures: [f, ...s.structures] })),
       addLedger: (e) => set((s) => ({ ledger: [e, ...s.ledger] })),
     }),
-    { name: "lnx-finance-v2" }
+    { name: "lnx-finance-v3" }
   )
 );
 
