@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { useAccessStore } from "@/stores";
 import { Copy, Archive, Plus, Search, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
+import { NewPackDialog } from "@/components/access/NewPackDialog";
+
 
 export const Route = createFileRoute("/_app/admin/access-control/access-packs")({
   head: () => ({ meta: [{ title: "Access Packs — LearnNowX" }] }),
