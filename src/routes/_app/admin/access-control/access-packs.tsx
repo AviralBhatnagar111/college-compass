@@ -61,12 +61,15 @@ function PacksPage() {
             </div>
             <div className="mt-4 flex gap-2">
               <Button asChild size="sm" variant="outline" className="flex-1"><Link to="/admin/access-control/access-packs/$id" params={{ id: p.id }}>Open</Link></Button>
-              <Button size="sm" variant="ghost" onClick={() => { const id = clonePack(p.id); if (id) toast.success("Cloned", { description: "Customize the copy" }); }}><Copy className="h-3 w-3" /></Button>
-              {!p.isSystem && <Button size="sm" variant="ghost" onClick={() => { archivePack(p.id); toast.success("Archived"); }}><Archive className="h-3 w-3" /></Button>}
+              <Button size="sm" variant="ghost" onClick={() => { const id = clonePack(p.id); if (id) { addAudit({ id: `a_${Date.now()}`, at: new Date().toISOString(), actorId: "u_hoi", targetId: id, action: "Cloned Access Pack", module: "RBAC", reason: `Cloned from ${p.name}` }); toast.success("Cloned", { description: "Customize the copy" }); } }}><Copy className="h-3 w-3" /></Button>
+              {!p.isSystem && <Button size="sm" variant="ghost" onClick={() => { archivePack(p.id); addAudit({ id: `a_${Date.now()}`, at: new Date().toISOString(), actorId: "u_hoi", targetId: p.id, action: "Archived Access Pack", module: "RBAC", reason: p.name }); toast.success("Archived"); }}><Archive className="h-3 w-3" /></Button>}
             </div>
           </Card>
         ))}
       </div>
+
+      <NewPackDialog open={newOpen} onOpenChange={setNewOpen} />
+
     </div>
   );
 }
