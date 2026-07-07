@@ -32,7 +32,7 @@ function PacksPage() {
       <PageHeader
         title="Access Packs"
         subtitle={`${filtered.length} active packs · system + custom`}
-        action={<Button><Plus className="mr-1 h-4 w-4" /> New Pack</Button>}
+        action={<Button onClick={() => setNewOpen(true)}><Plus className="mr-1 h-4 w-4" /> New Pack</Button>}
         filters={
           <div className="relative max-w-md">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
