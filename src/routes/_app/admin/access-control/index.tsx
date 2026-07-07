@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,17 +8,21 @@ import { UserStateBadges, StatusChip } from "@/components/common/StateBadges";
 import { useUsersStore, useAccessStore } from "@/stores";
 import { ROLE_LABEL } from "@/lib/types";
 import { KpiCard } from "@/components/common/KpiCard";
-import { Users, Clock, Lock, Wrench, RefreshCw, ListChecks, Plus } from "lucide-react";
+import { Users, Clock, Lock, Wrench, ListChecks, Plus } from "lucide-react";
+import { AddUserDialog } from "@/components/access/AddUserDialog";
 
 export const Route = createFileRoute("/_app/admin/access-control/")({
   head: () => ({ meta: [{ title: "Access Control — LearnNowX" }] }),
   component: AccessOverview,
 });
 
+
 function AccessOverview() {
   const users = useUsersStore(s => s.users);
   const requests = useAccessStore(s => s.requests);
   const audit = useAccessStore(s => s.audit);
+  const [addOpen, setAddOpen] = useState(false);
+
 
   const total = users.length;
   const active = users.filter(u => u.status === "active").length;
@@ -34,7 +39,7 @@ function AccessOverview() {
         action={
           <div className="flex gap-2">
             <Button variant="outline" asChild><Link to="/admin/access-control/access-packs">Access Packs</Link></Button>
-            <Button asChild><Link to="/admin/access-control/people"><Plus className="mr-1 h-4 w-4" /> Add User</Link></Button>
+            <Button onClick={() => setAddOpen(true)}><Plus className="mr-1 h-4 w-4" /> Add User</Button>
           </div>
         }
       />
@@ -131,6 +136,9 @@ function AccessOverview() {
           </table>
         </div>
       </Card>
+
+      <AddUserDialog open={addOpen} onOpenChange={setAddOpen} />
     </div>
   );
 }
+
