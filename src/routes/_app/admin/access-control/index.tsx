@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,12 +8,14 @@ import { UserStateBadges, StatusChip } from "@/components/common/StateBadges";
 import { useUsersStore, useAccessStore } from "@/stores";
 import { ROLE_LABEL } from "@/lib/types";
 import { KpiCard } from "@/components/common/KpiCard";
-import { Users, Clock, Lock, Wrench, RefreshCw, ListChecks, Plus } from "lucide-react";
+import { Users, Clock, Lock, Wrench, ListChecks, Plus } from "lucide-react";
+import { AddUserDialog } from "@/components/access/AddUserDialog";
 
 export const Route = createFileRoute("/_app/admin/access-control/")({
   head: () => ({ meta: [{ title: "Access Control — LearnNowX" }] }),
   component: AccessOverview,
 });
+
 
 function AccessOverview() {
   const users = useUsersStore(s => s.users);
