@@ -25,10 +25,16 @@ export const Route = createFileRoute("/_app/admin/access-control/people")({
 
 function PeoplePage() {
   const users = useUsersStore(s => s.users);
+  const updateUser = useUsersStore(s => s.updateUser);
+  const addAudit = useAccessStore(s => s.addAudit);
+  const actorId = useAuthStore(s => s.currentUserId) ?? "u_hoi";
   const [q, setQ] = useState("");
   const [role, setRole] = useState<string>("all");
   const [state, setState] = useState<string>("all");
   const [editing, setEditing] = useState<User | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
 
   const filtered = useMemo(() => users.filter(u => {
     if (role !== "all" && u.role !== role) return false;
