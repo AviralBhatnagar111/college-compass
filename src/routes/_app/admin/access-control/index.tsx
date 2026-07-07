@@ -136,6 +136,9 @@ function AccessOverview() {
           </table>
         </div>
       </Card>
+
+      <AddUserDialog open={addOpen} onOpenChange={setAddOpen} />
     </div>
   );
 }
+
