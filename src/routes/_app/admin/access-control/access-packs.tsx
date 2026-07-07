@@ -20,9 +20,12 @@ function PacksPage() {
   const packs = useAccessStore(s => s.packs);
   const clonePack = useAccessStore(s => s.clonePack);
   const archivePack = useAccessStore(s => s.archivePack);
+  const addAudit = useAccessStore(s => s.addAudit);
   const [q, setQ] = useState("");
+  const [newOpen, setNewOpen] = useState(false);
 
   const filtered = packs.filter(p => !p.isArchived && (`${p.name} ${p.persona}`.toLowerCase().includes(q.toLowerCase())));
+
 
   return (
     <div>
