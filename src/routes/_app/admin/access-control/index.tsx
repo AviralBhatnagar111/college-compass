@@ -39,7 +39,7 @@ function AccessOverview() {
         action={
           <div className="flex gap-2">
             <Button variant="outline" asChild><Link to="/admin/access-control/access-packs">Access Packs</Link></Button>
-            <Button asChild><Link to="/admin/access-control/people"><Plus className="mr-1 h-4 w-4" /> Add User</Link></Button>
+            <Button onClick={() => setAddOpen(true)}><Plus className="mr-1 h-4 w-4" /> Add User</Button>
           </div>
         }
       />
