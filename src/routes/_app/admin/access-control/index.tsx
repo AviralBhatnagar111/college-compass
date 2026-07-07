@@ -21,6 +21,8 @@ function AccessOverview() {
   const users = useUsersStore(s => s.users);
   const requests = useAccessStore(s => s.requests);
   const audit = useAccessStore(s => s.audit);
+  const [addOpen, setAddOpen] = useState(false);
+
 
   const total = users.length;
   const active = users.filter(u => u.status === "active").length;
