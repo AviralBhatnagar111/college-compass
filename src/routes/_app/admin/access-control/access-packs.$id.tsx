@@ -159,7 +159,7 @@ function PackBuilder() {
         <TabsContent value="settings">
           <Card className="p-5 space-y-3">
             <div className="flex items-center justify-between rounded-lg border p-3"><div><div className="text-sm font-medium">System Pack</div><div className="text-xs text-muted-foreground">System packs cannot be deleted, only edited.</div></div><Badge variant={pack.isSystem ? "default" : "outline"}>{pack.isSystem ? "Yes" : "No"}</Badge></div>
-            <div className="flex items-center justify-between rounded-lg border border-destructive/50 p-3"><div><div className="text-sm font-medium text-destructive">Archive Pack</div><div className="text-xs text-muted-foreground">Hides the pack. Existing user assignments remain.</div></div><Button variant="destructive" size="sm" disabled={pack.isSystem}>Archive</Button></div>
+            <div className="flex items-center justify-between rounded-lg border border-destructive/50 p-3"><div><div className="text-sm font-medium text-destructive">Archive Pack</div><div className="text-xs text-muted-foreground">Hides the pack. Existing user assignments remain.</div></div><Button variant="destructive" size="sm" disabled={pack.isSystem} onClick={archive}>Archive</Button></div>
           </Card>
         </TabsContent>
       </Tabs>
