@@ -26,7 +26,10 @@ function PackBuilder() {
   const { id } = Route.useParams();
   const pack = useAccessStore(s => s.packs.find(p => p.id === id));
   const updatePack = useAccessStore(s => s.updatePack);
+  const archivePack = useAccessStore(s => s.archivePack);
+  const addAudit = useAccessStore(s => s.addAudit);
   const users = useUsersStore(s => s.users).filter(u => u.packId === id);
+  const navigate = useNavigate();
   const [draft, setDraft] = useState(pack);
 
   if (!pack || !draft) return <div className="p-10 text-center">Pack not found. <Link to="/admin/access-control/access-packs" className="text-lnx-teal-500">Back</Link></div>;
@@ -34,7 +37,20 @@ function PackBuilder() {
   const togglePerm = (key: string) => setDraft(d => d ? { ...d, permissions: d.permissions.includes(key) ? d.permissions.filter(p => p !== key) : [...d.permissions, key] } : d);
   const toggleSensitive = (key: string) => setDraft(d => d ? { ...d, sensitive: (d.sensitive ?? []).includes(key) ? d.sensitive!.filter(s => s !== key) : [...(d.sensitive ?? []), key] } : d);
 
-  const save = () => { updatePack(id, { ...draft, isEdited: true }); toast.success("Pack saved", { description: `${users.length} users will see the new permissions` }); };
+  const save = () => {
+    updatePack(id, { ...draft, isEdited: true });
+    addAudit({ id: `a_${Date.now()}`, at: new Date().toISOString(), actorId: "u_hoi", targetId: id, action: "Updated Access Pack", module: "RBAC", reason: `${draft.name}: ${draft.permissions.length} perms`, before: { permissions: pack.permissions.length }, after: { permissions: draft.permissions.length } });
+    toast.success("Pack saved", { description: `${users.length} users will see the new permissions` });
+  };
+
+  const archive = () => {
+    if (pack.isSystem) { toast.error("System packs cannot be archived"); return; }
+    archivePack(id);
+    addAudit({ id: `a_${Date.now()}`, at: new Date().toISOString(), actorId: "u_hoi", targetId: id, action: "Archived Access Pack", module: "RBAC", reason: pack.name });
+    toast.success("Pack archived");
+    navigate({ to: "/admin/access-control/access-packs" });
+  };
+
 
   return (
     <div>
