@@ -5,14 +5,18 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar } from "@/components/common/Avatar";
 import { UserStateBadges, StatusChip } from "@/components/common/StateBadges";
-import { useUsersStore } from "@/stores";
+import { useUsersStore, useAccessStore, useAuthStore } from "@/stores";
 import { ROLE_LABEL, type RoleKey } from "@/lib/types";
-import { Search, Filter, Pencil } from "lucide-react";
+import { Search, Filter, Pencil, Plus, Download, UserX, UserCheck } from "lucide-react";
 import { EditAccessDrawer } from "@/components/access/EditAccessDrawer";
+import { AddUserDialog } from "@/components/access/AddUserDialog";
+import { toast } from "sonner";
 import type { User } from "@/lib/types";
+
 
 export const Route = createFileRoute("/_app/admin/access-control/people")({
   head: () => ({ meta: [{ title: "People & Access — LearnNowX" }] }),
