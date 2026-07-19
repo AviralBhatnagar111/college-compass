@@ -59,7 +59,7 @@ function AttendancePage() {
     case "student": return <StudentSelfView userId={user.id} />;
     case "parent": {
       const childId = user.childId;
-      return childId ? <StudentSelfView userId={childId} viewer="parent" /> : <EmptyState title="No child linked" description="Contact the registrar to link your ward's profile." />;
+      return childId ? <StudentSelfView userId={childId} viewer="parent" /> : <EmptyState title="No child linked" body="Contact the registrar to link your ward's profile." />;
     }
     default: return <FacultyView isLab={false} />;
   }
@@ -248,7 +248,7 @@ function ExecutiveView({ role }: { role: "hoi" | "registrar" }) {
 
         <TabsContent value="risk">
           <Card className="p-0">
-            {risk.length === 0 ? <div className="p-8"><EmptyState title="No critical shortage" description="No students below 65% in the selected scope." /></div> : (
+            {risk.length === 0 ? <div className="p-8"><EmptyState title="No critical shortage" body="No students below 65% in the selected scope." /></div> : (
               <Table>
                 <TableHeader><TableRow><TableHead>Roll</TableHead><TableHead>Student</TableHead><TableHead>Department</TableHead><TableHead>Section</TableHead><TableHead>Attendance</TableHead><TableHead></TableHead></TableRow></TableHeader>
                 <TableBody>
@@ -361,7 +361,7 @@ function HodView() {
         </TabsContent>
         <TabsContent value="approvals">
           <Card className="p-0">
-            {requests.length === 0 ? <div className="p-8"><EmptyState title="No pending requests" description="Corrections and leave applications will appear here." /></div> : (
+            {requests.length === 0 ? <div className="p-8"><EmptyState title="No pending requests" body="Corrections and leave applications will appear here." /></div> : (
               <div className="divide-y">
                 {requests.map(r => (
                   <div key={r.id} className="p-4 flex items-start gap-3">
@@ -530,7 +530,7 @@ function FacultyView({ isLab }: { isLab: boolean }) {
 
         <TabsContent value="today">
           {todaysClasses.length === 0 ? (
-            <Card className="p-8"><EmptyState title="No classes today" description="Enjoy the day — or apply a leave in advance from the button above." /></Card>
+            <Card className="p-8"><EmptyState title="No classes today" body="Enjoy the day — or apply a leave in advance from the button above." /></Card>
           ) : (
             <div className="grid gap-3 md:grid-cols-2">
               {todaysClasses.map(t => {
@@ -564,7 +564,7 @@ function FacultyView({ isLab }: { isLab: boolean }) {
 
         <TabsContent value="history">
           <Card className="p-0">
-            {facultyAttendance.length === 0 ? <div className="p-8"><EmptyState title="No submissions yet" description="Once you mark attendance it will appear here." /></div> : (
+            {facultyAttendance.length === 0 ? <div className="p-8"><EmptyState title="No submissions yet" body="Once you mark attendance it will appear here." /></div> : (
               <Table>
                 <TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Section</TableHead><TableHead>Subject</TableHead><TableHead>Slot</TableHead><TableHead>Summary</TableHead><TableHead></TableHead></TableRow></TableHeader>
                 <TableBody>
@@ -884,7 +884,7 @@ function StudentSelfView({ userId, viewer }: { userId: string; viewer?: "parent"
                 <p className="text-[10px] text-muted-foreground mt-1">Present {s.p} · Absent {s.a} · Leave {s.l} · Medical {s.ml} · Total {s.total}</p>
               </div>
             ))}
-            {subjWise.length === 0 && <EmptyState title="No records yet" description="Attendance will appear once classes begin." />}
+            {subjWise.length === 0 && <EmptyState title="No records yet" body="Attendance will appear once classes begin." />}
           </div>
         </Card>
 
@@ -914,7 +914,7 @@ function StudentSelfView({ userId, viewer }: { userId: string; viewer?: "parent"
           <h3 className="text-sm font-semibold">Recent history</h3>
           <Badge variant="secondary">{myRecords.length} records</Badge>
         </div>
-        {myRecords.length === 0 ? <div className="p-8"><EmptyState title="No attendance recorded" description="Classes will start reflecting here shortly." /></div> : (
+        {myRecords.length === 0 ? <div className="p-8"><EmptyState title="No attendance recorded" body="Classes will start reflecting here shortly." /></div> : (
           <Table>
             <TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Subject</TableHead><TableHead>Slot</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
             <TableBody>
