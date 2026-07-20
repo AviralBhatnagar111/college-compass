@@ -109,6 +109,7 @@ interface AcademicState {
   timetable: TimetableSlot[];
   attendance: AttendanceRecord[];
   saveAttendance: (record: AttendanceRecord) => void;
+  removeAttendance: (id: string) => void;
   updateTimetableSlot: (id: string, patch: Partial<TimetableSlot>) => void;
   addProgram: (p: Program) => void;
   addSubject: (s: Subject) => void;
@@ -130,6 +131,7 @@ export const useAcademicStore = create<AcademicState>()(
         const filtered = s.attendance.filter(a => !(a.sectionId === r.sectionId && a.subjectId === r.subjectId && a.date === r.date && a.slot === r.slot));
         return { attendance: [r, ...filtered] };
       }),
+      removeAttendance: (id) => set((s) => ({ attendance: s.attendance.filter(a => a.id !== id) })),
       updateTimetableSlot: (id, patch) => set((s) => ({ timetable: s.timetable.map(t => t.id === id ? { ...t, ...patch } : t) })),
       addProgram: (p) => set((s) => ({ programs: [...s.programs, p] })),
       addSubject: (sub) => set((s) => ({ subjects: [...s.subjects, sub] })),
