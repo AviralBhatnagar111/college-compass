@@ -648,6 +648,9 @@ function FacultyView({ isLab }: { isLab: boolean }) {
   const { user } = useAccess();
   const addAudit = useAccessStore(s => s.addAudit);
   const submissions = useAttendanceWorkflow(s => s.submissions);
+  const corrections = useAttendanceWorkflow(s => s.corrections);
+  const updateSubmission = useAttendanceWorkflow(s => s.updateSubmission);
+  const updateCorrection = useAttendanceWorkflow(s => s.updateCorrection);
   const addLeave = useAttendanceWorkflow(s => s.addLeave);
 
   const scopedSections = user?.scope?.ids?.length ? sections.filter(s => user!.scope.ids.includes(s.id)) : sections;
@@ -668,12 +671,46 @@ function FacultyView({ isLab }: { isLab: boolean }) {
   const [markCtx, setMarkCtx] = useState<{ secId: string; subId: string; slot: number; batch?: string; roomId?: string; date?: string } | null>(null);
   const [correctionCtx, setCorrectionCtx] = useState<AttendanceSubmission | null>(null);
   const [leaveOpen, setLeaveOpen] = useState(false);
+  const [unsubmitId, setUnsubmitId] = useState<string | null>(null);
+  const [correctionDecide, setCorrectionDecide] = useState<{ id: string; kind: "approve" | "reject" } | null>(null);
+  const [correctionNote, setCorrectionNote] = useState("");
 
   const mySubs = submissions.filter(s => s.facultyId === user?.id || scopedSections.some(x => x.id === s.sectionId));
   const pending = todaysClasses.filter(t => t.subjectId && !subStatus(t.sectionId, t.subjectId!, t.slot)).length;
-  const marked = todaysClasses.filter(t => t.subjectId && subStatus(t.sectionId, t.subjectId!, t.slot)).length;
   const awaitingHod = mySubs.filter(s => s.status === "pending").length;
   const returned = mySubs.filter(s => s.status === "returned").length;
+
+  // Corrections routed to this faculty (own subjects) that need faculty review
+  const myCorrections = corrections.filter(c =>
+    (c.facultyId === user?.id || scopedSections.some(x => x.id === c.sectionId)) &&
+    c.status === "pending_faculty"
+  );
+
+  const unsubmit = (id: string) => {
+    updateSubmission(id, { status: "draft", decisionNote: "Withdrawn by faculty", decidedAt: new Date().toISOString() });
+    addAudit({ id: `aud_${Date.now().toString(36)}`, at: new Date().toISOString(), actorId: user?.id ?? "", module: "Attendance", action: "Unsubmitted attendance", targetId: id, reason: "Withdrawn before HOD decision" });
+    toast.success("Submission withdrawn", { description: "You can now edit and resubmit." });
+    setUnsubmitId(null);
+  };
+
+  const decideCorrection = () => {
+    if (!correctionDecide) return;
+    if (correctionDecide.kind === "approve") {
+      updateCorrection(correctionDecide.id, {
+        status: "pending_hod",
+        facultyDecision: { by: user?.id ?? "", at: new Date().toISOString(), note: correctionNote || "Approved by faculty", approved: true },
+      });
+      toast.success("Correction endorsed — routed to HOD");
+    } else {
+      updateCorrection(correctionDecide.id, {
+        status: "rejected",
+        facultyDecision: { by: user?.id ?? "", at: new Date().toISOString(), note: correctionNote || "Rejected by faculty", approved: false },
+      });
+      toast.success("Correction rejected");
+    }
+    addAudit({ id: `aud_${Date.now().toString(36)}`, at: new Date().toISOString(), actorId: user?.id ?? "", module: "Attendance", action: `${correctionDecide.kind === "approve" ? "Endorsed" : "Rejected"} correction`, targetId: correctionDecide.id, reason: correctionNote });
+    setCorrectionDecide(null); setCorrectionNote("");
+  };
 
   return (
     <div>
@@ -691,14 +728,17 @@ function FacultyView({ isLab }: { isLab: boolean }) {
         <KpiCard label="Today's Classes" value={todaysClasses.length} icon={ClipboardCheck} />
         <KpiCard label="Pending Submit" value={pending} icon={Clock} tone={pending > 0 ? "amber" : "green"} />
         <KpiCard label="Awaiting HOD" value={awaitingHod} icon={Clock} tone={awaitingHod > 0 ? "amber" : undefined} />
-        <KpiCard label="Returned" value={returned} icon={Undo2} tone={returned > 0 ? "red" : undefined} />
+        <KpiCard label="Correction Requests" value={myCorrections.length} icon={MessageSquare} tone={myCorrections.length > 0 ? "amber" : undefined} />
       </div>
 
       <Tabs defaultValue="today" className="space-y-4">
         <TabsList>
           <TabsTrigger value="today">Today</TabsTrigger>
           <TabsTrigger value="quick">Quick Mark {pending > 0 && <Badge variant="secondary" className="ml-2 h-4 px-1.5">{pending}</Badge>}</TabsTrigger>
-          <TabsTrigger value="history">History</TabsTrigger>
+          <TabsTrigger value="corrections">
+            Corrections {myCorrections.length > 0 && <Badge variant="destructive" className="ml-2 h-4 px-1.5">{myCorrections.length}</Badge>}
+          </TabsTrigger>
+          <TabsTrigger value="history">History {returned > 0 && <Badge variant="secondary" className="ml-2 h-4 px-1.5 bg-lnx-red-500/10 text-lnx-red-500">{returned}</Badge>}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="today">
@@ -725,10 +765,17 @@ function FacultyView({ isLab }: { isLab: boolean }) {
                         <p className="text-xs text-muted-foreground mt-1">{t.sectionId} · {start}–{end} · Room {t.roomId}</p>
                         {status === "returned" && record?.decisionNote && <p className="text-xs text-lnx-red-500 mt-1">HOD note: {record.decisionNote}</p>}
                       </div>
-                      <Button size="sm" variant={locked ? "outline" : "default"}
-                        onClick={() => setMarkCtx({ secId: t.sectionId, subId: t.subjectId!, slot: t.slot, roomId: t.roomId, date: todayISO })}>
-                        {locked ? <><Eye className="h-3 w-3 mr-1" />View</> : status === "returned" ? <><Save className="h-3 w-3 mr-1" />Revise</> : <><ClipboardCheck className="h-3 w-3 mr-1" />Mark</>}
-                      </Button>
+                      <div className="flex flex-col gap-1 items-end">
+                        <Button size="sm" variant={locked ? "outline" : "default"}
+                          onClick={() => setMarkCtx({ secId: t.sectionId, subId: t.subjectId!, slot: t.slot, roomId: t.roomId, date: todayISO })}>
+                          {locked ? <><Eye className="h-3 w-3 mr-1" />View</> : status === "returned" ? <><Save className="h-3 w-3 mr-1" />Revise</> : <><ClipboardCheck className="h-3 w-3 mr-1" />Mark</>}
+                        </Button>
+                        {status === "pending" && record && (
+                          <Button size="sm" variant="ghost" className="text-lnx-red-500 h-7" onClick={() => setUnsubmitId(record.id)}>
+                            <Undo2 className="h-3 w-3 mr-1" />Unsubmit
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </Card>
                 );
@@ -750,6 +797,44 @@ function FacultyView({ isLab }: { isLab: boolean }) {
           />
         </TabsContent>
 
+        <TabsContent value="corrections">
+          <Card className="p-0">
+            {myCorrections.length === 0 ? <div className="p-8"><EmptyState title="No correction requests" body="Corrections raised by students or parents on your classes will appear here for endorsement." /></div> : (
+              <div className="divide-y">
+                {myCorrections.map(c => {
+                  const sub = subjects.find(x => x.id === c.subjectId);
+                  return (
+                    <div key={c.id} className="p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="text-sm font-semibold">{c.studentName}</p>
+                            <span className="text-xs text-muted-foreground">{c.rollNo}</span>
+                            <Badge variant="secondary">{c.correctionType.replace("_", " ")}</Badge>
+                            <Badge variant="secondary" className="bg-lnx-amber-500/10 text-lnx-amber-500">Awaiting your review</Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {sub?.code} {sub?.name} · {c.date} · {c.startTime}–{c.endTime} · Current: <b>{markLabel[c.currentMark]}</b> · Raised by {c.raisedByRole}
+                          </p>
+                          <p className="text-sm mt-2">{c.reason}</p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline" onClick={() => { setCorrectionDecide({ id: c.id, kind: "reject" }); setCorrectionNote(""); }}>
+                            <ThumbsDown className="h-3 w-3 mr-1" />Reject
+                          </Button>
+                          <Button size="sm" onClick={() => { setCorrectionDecide({ id: c.id, kind: "approve" }); setCorrectionNote(""); }}>
+                            <ThumbsUp className="h-3 w-3 mr-1" />Endorse → HOD
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </Card>
+        </TabsContent>
+
         <TabsContent value="history">
           <Card className="p-0">
             {mySubs.length === 0 ? <div className="p-8"><EmptyState title="No submissions yet" body="Once you submit attendance it will appear here with approval status." /></div> : (
@@ -763,18 +848,20 @@ function FacultyView({ isLab }: { isLab: boolean }) {
                     const subj = subjects.find(s => s.id === a.subjectId);
                     const p = Object.values(a.marks).filter(v => v === "P").length;
                     const total = Object.keys(a.marks).length;
+                    const canUnsubmit = a.status === "pending" || a.status === "returned";
                     return (
                       <TableRow key={a.id}>
                         <TableCell className="text-xs">{a.date}</TableCell>
                         <TableCell>{a.sectionId}</TableCell>
                         <TableCell>{subj?.code}</TableCell>
                         <TableCell className="text-xs">{a.startTime}–{a.endTime}</TableCell>
-                        <TableCell><Badge variant="secondary" className={attendanceBadge(Math.round(p/total*100))}>{p}/{total} ({Math.round(p/total*100)}%)</Badge></TableCell>
+                        <TableCell><Badge variant="secondary" className={attendanceBadge(Math.round(p / total * 100))}>{p}/{total} ({Math.round(p / total * 100)}%)</Badge></TableCell>
                         <TableCell><Badge variant="secondary" className={statusStyle[a.status]}>{statusLabel[a.status]}</Badge></TableCell>
                         <TableCell>
                           <div className="flex gap-1">
-                            <Button size="sm" variant="ghost" onClick={() => setMarkCtx({ secId: a.sectionId, subId: a.subjectId, slot: a.slot, roomId: a.roomId, date: a.date })}><Eye className="h-3 w-3" /></Button>
-                            {a.status === "rejected" && <Button size="sm" variant="ghost" onClick={() => setCorrectionCtx(a)}><MessageSquare className="h-3 w-3" /></Button>}
+                            <Button size="sm" variant="ghost" title="View" onClick={() => setMarkCtx({ secId: a.sectionId, subId: a.subjectId, slot: a.slot, roomId: a.roomId, date: a.date })}><Eye className="h-3 w-3" /></Button>
+                            <Button size="sm" variant="ghost" title="Raise correction" onClick={() => setCorrectionCtx(a)}><MessageSquare className="h-3 w-3" /></Button>
+                            {canUnsubmit && <Button size="sm" variant="ghost" title="Unsubmit" className="text-lnx-red-500" onClick={() => setUnsubmitId(a.id)}><Undo2 className="h-3 w-3" /></Button>}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -813,6 +900,46 @@ function FacultyView({ isLab }: { isLab: boolean }) {
         addAudit({ id: `aud_${Date.now().toString(36)}`, at: new Date().toISOString(), actorId: user?.id ?? "", module: "Attendance", action: "Submitted leave application", reason: payload.reason });
         toast.success("Leave request sent to HOD for approval");
       }} />
+
+      {/* Unsubmit confirmation */}
+      <Dialog open={!!unsubmitId} onOpenChange={(v) => !v && setUnsubmitId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Unsubmit this attendance?</DialogTitle>
+            <DialogDescription>
+              This will withdraw the submission from HOD's approval queue. The record will move back to draft
+              and you can edit it before resubmitting. Are you sure?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUnsubmitId(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={() => unsubmitId && unsubmit(unsubmitId)}>
+              <Undo2 className="h-3 w-3 mr-1" />Yes, unsubmit
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Correction endorse / reject */}
+      <Dialog open={!!correctionDecide} onOpenChange={(v) => !v && setCorrectionDecide(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{correctionDecide?.kind === "approve" ? "Endorse correction and route to HOD" : "Reject correction request"}</DialogTitle>
+            <DialogDescription>
+              {correctionDecide?.kind === "approve"
+                ? "Your endorsement routes this to the HOD for final approval. Add an optional note."
+                : "The student will be notified. Please add a brief reason."}
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea value={correctionNote} onChange={(e) => setCorrectionNote(e.target.value)} placeholder={correctionDecide?.kind === "approve" ? "Optional note…" : "Reason for rejection…"} />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCorrectionDecide(null)}>Cancel</Button>
+            <Button disabled={correctionDecide?.kind === "reject" && !correctionNote.trim()} onClick={decideCorrection}>
+              {correctionDecide?.kind === "approve" ? "Endorse & Route" : "Reject"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
