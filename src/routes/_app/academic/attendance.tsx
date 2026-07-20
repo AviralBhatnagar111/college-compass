@@ -341,6 +341,7 @@ function HodView() {
   const rows = useSectionRows({ deptIds });
   const users = useUsersStore(s => s.users);
   const subjects = useAcademicStore(s => s.subjects);
+  const removeAttendance = useAcademicStore(s => s.removeAttendance);
   const addAudit = useAccessStore(s => s.addAudit);
   const submissions = useAttendanceWorkflow(s => s.submissions);
   const corrections = useAttendanceWorkflow(s => s.corrections);
@@ -348,23 +349,51 @@ function HodView() {
   const updateCorrection = useAttendanceWorkflow(s => s.updateCorrection);
   const [drill, setDrill] = useState<string | null>(null);
   const [reviewSub, setReviewSub] = useState<AttendanceSubmission | null>(null);
-  const [decisionCtx, setDecisionCtx] = useState<{ id: string; kind: "reject"|"return"; type: "submission"|"correction" } | null>(null);
+  const [decisionCtx, setDecisionCtx] = useState<{ id: string; kind: "reject" | "return"; type: "submission" | "correction" } | null>(null);
   const [decisionNote, setDecisionNote] = useState("");
+  const [period, setPeriod] = useState<"day" | "week" | "month">("week");
+  const [revokeSub, setRevokeSub] = useState<AttendanceSubmission | null>(null);
+
+  const periodStart = useMemo(() => {
+    const d = new Date();
+    if (period === "day") return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    if (period === "week") { const dt = new Date(d); dt.setDate(dt.getDate() - 6); return dt; }
+    const dt = new Date(d); dt.setDate(dt.getDate() - 29); return dt;
+  }, [period]);
+  const inPeriod = (iso: string) => new Date(iso) >= periodStart;
 
   // Department-scoped submissions & corrections
   const deptSectionIds = rows.map(r => r.sec.id);
   const scopedSubs = submissions.filter(s => deptSectionIds.includes(s.sectionId));
-  const pendingSubs = scopedSubs.filter(s => s.status === "pending");
-  const scopedCorrections = corrections.filter(c => deptSectionIds.includes(c.sectionId) && c.status !== "approved" && c.status !== "rejected");
+  const pendingSubs = scopedSubs.filter(s => s.status === "pending" && inPeriod(s.date));
+  const approvedSubs = scopedSubs.filter(s => s.status === "approved" && inPeriod(s.date))
+    .sort((a, b) => (b.decidedAt ?? "").localeCompare(a.decidedAt ?? ""));
+  const scopedCorrections = corrections
+    .filter(c => deptSectionIds.includes(c.sectionId) && c.status !== "approved" && c.status !== "rejected")
+    .filter(c => inPeriod(c.date));
 
   const deptStu = users.filter(u => u.role === "student" && deptIds.includes(u.department ?? ""));
-  const avg = deptStu.length ? Math.round(deptStu.reduce((a,b) => a + (b.attendancePct ?? 0), 0) / deptStu.length) : 0;
+  const avg = deptStu.length ? Math.round(deptStu.reduce((a, b) => a + (b.attendancePct ?? 0), 0) / deptStu.length) : 0;
   const below75 = deptStu.filter(s => (s.attendancePct ?? 0) < 75).length;
   const below65 = deptStu.filter(s => (s.attendancePct ?? 0) < 65).length;
-  const detail = drill ? rows.find(r => r.sec.id === drill) : null;
+
+  // Period-scoped section rows — computed from submissions inside period
+  const periodRows = useMemo(() => rows.map(r => {
+    const secSubs = scopedSubs.filter(s => s.sectionId === r.sec.id && s.status === "approved" && inPeriod(s.date));
+    let total = 0, present = 0;
+    secSubs.forEach(s => {
+      Object.values(s.marks).forEach(m => {
+        total++;
+        if (m === "P" || m === "ML") present++;
+      });
+    });
+    const periodAvg = total ? Math.round((present / total) * 100) : r.avg;
+    return { ...r, avg: periodAvg, sessions: secSubs.length };
+  }), [rows, scopedSubs, period, periodStart]);
+
+  const detail = drill ? periodRows.find(r => r.sec.id === drill) : null;
 
   const approve = (sub: AttendanceSubmission) => {
-    // Publish downstream via existing cascade — this updates student pct + parents.
     saveAttendanceCascade({
       id: sub.id, sectionId: sub.sectionId, subjectId: sub.subjectId,
       facultyId: sub.facultyId, date: sub.date, slot: sub.slot,
@@ -374,6 +403,19 @@ function HodView() {
     addAudit({ id: `aud_${Date.now().toString(36)}`, at: new Date().toISOString(), actorId: user?.id ?? "u_hod", module: "Attendance", action: `Approved attendance · ${sub.sectionId} · ${sub.date}`, targetId: sub.id });
     toast.success("Attendance approved and published");
     setReviewSub(null);
+  };
+
+  const revoke = (sub: AttendanceSubmission) => {
+    removeAttendance(sub.id);
+    updateSubmission(sub.id, {
+      status: "returned",
+      decidedBy: user?.id,
+      decidedAt: new Date().toISOString(),
+      decisionNote: "Approval revoked by HOD — please review and resubmit.",
+    });
+    addAudit({ id: `aud_${Date.now().toString(36)}`, at: new Date().toISOString(), actorId: user?.id ?? "u_hod", module: "Attendance", action: `Revoked approval · ${sub.sectionId} · ${sub.date}`, targetId: sub.id, reason: "HOD revocation" });
+    toast.success("Approval revoked", { description: "Record removed and returned to faculty." });
+    setRevokeSub(null);
   };
 
   const submitDecision = () => {
@@ -393,15 +435,29 @@ function HodView() {
     setDecisionCtx(null); setDecisionNote(""); setReviewSub(null);
   };
 
+  const periodLabel = period === "day" ? "today" : period === "week" ? "last 7 days" : "last 30 days";
+
   return (
     <div>
       <PageHeader
         title="Department Attendance"
-        subtitle={`Scope: ${deptIds.join(", ") || "your department"} — approvals, monitoring and analytics`}
-        action={<Button variant="outline" onClick={() => toast.success("Department report exported")}><Download className="h-4 w-4 mr-2" />Export</Button>}
+        subtitle={`Scope: ${deptIds.join(", ") || "your department"} — showing ${periodLabel}`}
+        action={
+          <div className="flex gap-2">
+            <Select value={period} onValueChange={(v) => setPeriod(v as "day" | "week" | "month")}>
+              <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="day">Today</SelectItem>
+                <SelectItem value="week">This Week</SelectItem>
+                <SelectItem value="month">This Month</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button variant="outline" onClick={() => toast.success("Department report exported")}><Download className="h-4 w-4 mr-2" />Export</Button>
+          </div>
+        }
       />
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        <KpiCard label="Dept Avg" value={`${avg}%`} icon={TrendingUp} tone={avg >= 75 ? "green" : "amber"} />
+        <KpiCard label={`Dept Avg (${periodLabel})`} value={`${avg}%`} icon={TrendingUp} tone={avg >= 75 ? "green" : "amber"} />
         <KpiCard label="Pending Approvals" value={pendingSubs.length} icon={ClipboardCheck} tone={pendingSubs.length > 0 ? "amber" : undefined} />
         <KpiCard label="Below 75%" value={below75} icon={AlertTriangle} tone="amber" />
         <KpiCard label="Correction Requests" value={scopedCorrections.length} icon={MessageSquare} tone={scopedCorrections.length > 0 ? "amber" : undefined} />
@@ -409,15 +465,16 @@ function HodView() {
 
       <Tabs defaultValue="approvals" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="approvals">Attendance Approvals {pendingSubs.length > 0 && <Badge variant="destructive" className="ml-2 h-4 px-1.5">{pendingSubs.length}</Badge>}</TabsTrigger>
+          <TabsTrigger value="approvals">Approvals {pendingSubs.length > 0 && <Badge variant="destructive" className="ml-2 h-4 px-1.5">{pendingSubs.length}</Badge>}</TabsTrigger>
+          <TabsTrigger value="approved">Approved {approvedSubs.length > 0 && <Badge variant="secondary" className="ml-2 h-4 px-1.5">{approvedSubs.length}</Badge>}</TabsTrigger>
           <TabsTrigger value="corrections">Corrections {scopedCorrections.length > 0 && <Badge variant="secondary" className="ml-2 h-4 px-1.5">{scopedCorrections.length}</Badge>}</TabsTrigger>
-          <TabsTrigger value="sections">Sections</TabsTrigger>
+          <TabsTrigger value="sections">Sections ({periodLabel})</TabsTrigger>
           <TabsTrigger value="risk">At-Risk ({below65})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="approvals">
           <Card className="p-0">
-            {pendingSubs.length === 0 ? <div className="p-8"><EmptyState title="Nothing awaiting approval" body="Faculty submissions will queue here for your review." /></div> : (
+            {pendingSubs.length === 0 ? <div className="p-8"><EmptyState title="Nothing awaiting approval" body={`No pending submissions in the ${periodLabel} window.`} /></div> : (
               <Table>
                 <TableHeader><TableRow>
                   <TableHead>Faculty</TableHead><TableHead>Section</TableHead><TableHead>Subject</TableHead>
@@ -448,6 +505,43 @@ function HodView() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="approved">
+          <Card className="p-0">
+            {approvedSubs.length === 0 ? <div className="p-8"><EmptyState title="No approved submissions" body={`No approvals in the ${periodLabel} window.`} /></div> : (
+              <Table>
+                <TableHeader><TableRow>
+                  <TableHead>Faculty</TableHead><TableHead>Section</TableHead><TableHead>Subject</TableHead>
+                  <TableHead>Date</TableHead><TableHead>Time</TableHead><TableHead>Present</TableHead>
+                  <TableHead>Approved At</TableHead><TableHead></TableHead>
+                </TableRow></TableHeader>
+                <TableBody>
+                  {approvedSubs.slice(0, 60).map(s => {
+                    const sub = subjects.find(x => x.id === s.subjectId);
+                    const p = Object.values(s.marks).filter(v => v === "P").length;
+                    return (
+                      <TableRow key={s.id}>
+                        <TableCell className="font-medium">{s.facultyName}</TableCell>
+                        <TableCell>{s.sectionId}</TableCell>
+                        <TableCell>{sub?.code}</TableCell>
+                        <TableCell className="text-xs">{s.date}</TableCell>
+                        <TableCell className="text-xs">{s.startTime}–{s.endTime}</TableCell>
+                        <TableCell><Badge variant="secondary" className={attendanceBadge(Math.round(p / s.totalStudents * 100))}>{p}/{s.totalStudents}</Badge></TableCell>
+                        <TableCell className="text-xs">{s.decidedAt ? new Date(s.decidedAt).toLocaleString("en-IN") : "—"}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-1">
+                            <Button size="sm" variant="ghost" onClick={() => setReviewSub(s)}><Eye className="h-3 w-3" /></Button>
+                            <Button size="sm" variant="ghost" className="text-lnx-red-500" title="Revoke approval" onClick={() => setRevokeSub(s)}><Undo2 className="h-3 w-3" /></Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
+          </Card>
+        </TabsContent>
+
         <TabsContent value="corrections">
           <Card className="p-0">
             {scopedCorrections.length === 0 ? <div className="p-8"><EmptyState title="No correction requests" body="Student and faculty correction requests will appear here." /></div> : (
@@ -461,8 +555,8 @@ function HodView() {
                           <div className="flex items-center gap-2 flex-wrap">
                             <p className="text-sm font-semibold">{c.studentName}</p>
                             <span className="text-xs text-muted-foreground">{c.rollNo}</span>
-                            <Badge variant="secondary">{c.correctionType.replace("_"," ")}</Badge>
-                            <Badge variant="secondary" className={c.status === "pending_faculty" ? "bg-lnx-amber-500/10 text-lnx-amber-500" : "bg-lnx-teal-500/10 text-lnx-teal-600"}>{c.status.replace("_"," ")}</Badge>
+                            <Badge variant="secondary">{c.correctionType.replace("_", " ")}</Badge>
+                            <Badge variant="secondary" className={c.status === "pending_faculty" ? "bg-lnx-amber-500/10 text-lnx-amber-500" : "bg-lnx-teal-500/10 text-lnx-teal-600"}>{c.status.replace("_", " ")}</Badge>
                           </div>
                           <p className="text-xs text-muted-foreground mt-1">
                             Concern by <b>{c.facultyName}</b> · {sub?.code} {sub?.name} · {c.date} · {c.startTime}–{c.endTime} · Current: <b>{markLabel[c.currentMark]}</b>
@@ -489,7 +583,29 @@ function HodView() {
         </TabsContent>
 
         <TabsContent value="sections">
-          <SectionsTable rows={rows} onOpen={setDrill} />
+          <Card className="p-0">
+            <Table>
+              <TableHeader><TableRow>
+                <TableHead>Section</TableHead><TableHead>Program</TableHead><TableHead>Students</TableHead>
+                <TableHead>Sessions ({periodLabel})</TableHead><TableHead>Avg %</TableHead>
+                <TableHead>Below 75%</TableHead><TableHead>Critical</TableHead><TableHead></TableHead>
+              </TableRow></TableHeader>
+              <TableBody>
+                {periodRows.map(r => (
+                  <TableRow key={r.sec.id} className="cursor-pointer" onClick={() => setDrill(r.sec.id)}>
+                    <TableCell className="font-medium">{r.sec.name}</TableCell>
+                    <TableCell className="text-xs">{r.prog?.name ?? "—"}</TableCell>
+                    <TableCell>{r.stu.length}</TableCell>
+                    <TableCell>{r.sessions}</TableCell>
+                    <TableCell><Badge variant="secondary" className={attendanceBadge(r.avg)}>{r.avg}%</Badge></TableCell>
+                    <TableCell>{r.below75}</TableCell>
+                    <TableCell>{r.below65 > 0 ? <Badge variant="destructive">{r.below65}</Badge> : <span className="text-xs text-muted-foreground">0</span>}</TableCell>
+                    <TableCell><Button size="sm" variant="ghost"><Eye className="h-3 w-3 mr-1" />View</Button></TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
         </TabsContent>
 
         <TabsContent value="risk">
@@ -535,6 +651,26 @@ function HodView() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setDecisionCtx(null)}>Cancel</Button>
             <Button disabled={!decisionNote.trim()} onClick={submitDecision}>{decisionCtx?.kind === "reject" ? "Reject" : "Return"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Revoke approval confirm */}
+      <Dialog open={!!revokeSub} onOpenChange={(v) => !v && setRevokeSub(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Revoke this approval?</DialogTitle>
+            <DialogDescription>
+              This will remove the published attendance record and return the submission to the faculty for
+              revision. Students and parents will no longer see this session until it is re-approved.
+              Are you sure?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRevokeSub(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={() => revokeSub && revoke(revokeSub)}>
+              <Undo2 className="h-3 w-3 mr-1" />Yes, revoke approval
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
