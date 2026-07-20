@@ -109,6 +109,7 @@ interface AcademicState {
   timetable: TimetableSlot[];
   attendance: AttendanceRecord[];
   saveAttendance: (record: AttendanceRecord) => void;
+  removeAttendance: (id: string) => void;
   updateTimetableSlot: (id: string, patch: Partial<TimetableSlot>) => void;
   addProgram: (p: Program) => void;
   addSubject: (s: Subject) => void;
