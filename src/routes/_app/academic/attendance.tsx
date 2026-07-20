@@ -120,23 +120,29 @@ function ExecutiveView({ role }: { role: "hoi" | "registrar" }) {
   const [threshold, setThreshold] = useState<string>("all");
   const [drill, setDrill] = useState<string | null>(null);
 
-  const filteredRows = rows.filter(r => deptFilter === "all" || r.deptId === deptFilter);
+  const thresholdNum = threshold === "all" ? 100 : parseInt(threshold);
+  const passesThreshold = (pct: number) => threshold === "all" || pct < thresholdNum;
+
   const allStudents = users.filter(u => u.role === "student" && (deptFilter === "all" || u.department === deptFilter));
-  const overallAvg = allStudents.length ? Math.round(allStudents.reduce((a, b) => a + (b.attendancePct ?? 0), 0) / allStudents.length) : 0;
+  const filteredStudents = allStudents.filter(s => passesThreshold(s.attendancePct ?? 0));
+  const filteredRows = rows.filter(r => {
+    if (deptFilter !== "all" && r.deptId !== deptFilter) return false;
+    if (threshold === "all") return true;
+    return r.stu.some(s => (s.attendancePct ?? 0) < thresholdNum);
+  });
+  const overallAvg = filteredStudents.length ? Math.round(filteredStudents.reduce((a, b) => a + (b.attendancePct ?? 0), 0) / filteredStudents.length) : 0;
   const below75 = allStudents.filter(s => (s.attendancePct ?? 0) < 75).length;
   const below65 = allStudents.filter(s => (s.attendancePct ?? 0) < 65).length;
 
   const deptStats = departments.map(d => {
-    const stu = users.filter(u => u.role === "student" && u.department === d.id);
+    const stu = users.filter(u => u.role === "student" && u.department === d.id && passesThreshold(u.attendancePct ?? 0));
     const avg = stu.length ? Math.round(stu.reduce((a, b) => a + (b.attendancePct ?? 0), 0) / stu.length) : 0;
     return { ...d, avg, count: stu.length, below75: stu.filter(s => (s.attendancePct ?? 0) < 75).length };
-  }).filter(d => d.count > 0).sort((a,b) => b.avg - a.avg);
+  }).filter(d => d.count > 0).sort((a, b) => b.avg - a.avg);
 
-  const thresholdNum = threshold === "all" ? 100 : parseInt(threshold);
-  const risk = allStudents
-    .filter(s => (s.attendancePct ?? 0) < thresholdNum)
-    .sort((a,b) => (a.attendancePct ?? 0) - (b.attendancePct ?? 0))
-    .slice(0, 20);
+  const risk = filteredStudents
+    .sort((a, b) => (a.attendancePct ?? 0) - (b.attendancePct ?? 0))
+    .slice(0, 50);
 
   const facultyPerf = users.filter(u => u.role === "faculty" || u.role === "lab_faculty").map(f => {
     const subs = attendance.filter(a => a.facultyId === f.id).length;
